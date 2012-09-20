@@ -1,0 +1,35 @@
+------------------------------------------------------------------------
+r58 | yssaril | 2012-09-08 23:55:37 +0000 (Sat, 08 Sep 2012) | 1 line
+Changed paths:
+   M /trunk/LibMounts-1.0/LibMounts-1.0.lua
+
+fix equalities
+------------------------------------------------------------------------
+r57 | yssaril | 2012-09-08 23:40:33 +0000 (Sat, 08 Sep 2012) | 1 line
+Changed paths:
+   M /trunk/LibMounts-1.0/LibMounts-1.0.lua
+
+fix spelling /sigh
+------------------------------------------------------------------------
+r56 | yssaril | 2012-09-08 23:38:15 +0000 (Sat, 08 Sep 2012) | 1 line
+Changed paths:
+   M /trunk/LibMounts-1.0/LibMounts-1.0.lua
+
+fix documentation
+------------------------------------------------------------------------
+r55 | yssaril | 2012-09-08 23:32:08 +0000 (Sat, 08 Sep 2012) | 2 lines
+Changed paths:
+   M /trunk/LibMounts-1.0/Data.lua
+   M /trunk/LibMounts-1.0/LibMounts-1.0.lua
+   M /trunk/MissingMounts.lua
+
+added Profession restrictions to the data file
+added new function lib:GetProffessionRestriction(id) returns if we meet the restrictions to summon the mount (if any) and which profession and profession level required (if any)
+------------------------------------------------------------------------
+r54 | yssaril | 2012-08-28 17:18:57 +0000 (Tue, 28 Aug 2012) | 1 line
+Changed paths:
+   M /trunk/LibMounts-1.0/Data.lua
+   M /trunk/LibMounts-1.0.toc
+
+updated toc and added all MoP mounts
+------------------------------------------------------------------------
