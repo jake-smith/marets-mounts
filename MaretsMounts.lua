@@ -28,10 +28,15 @@ local paladinMounts = {[34769] = true,[13819] = true, [66906] = true,[23214] = t
 local warlockMounts = {[5784] = true, [23161] = true};
 local dkMounts = {[48778] = true, [54729] = true}
 
-local shapeshiftAir = {[33943] = true, [40120] = true};
-local shapeshiftGround = {[783] = true};
-local shapeshiftWater = {[1066] = true};
-local itemMounts = {[101641] = true;}; 
+local shapeshiftAir = {};
+local shapeshiftGround = {};
+local shapeshiftWater = {};
+local itemMounts = {}; 
+
+--local shapeshiftAir = {[33943] = true, [40120] = true};
+--local shapeshiftGround = {[783] = true};
+--local shapeshiftWater = {[1066] = true};
+--local itemMounts = {[101641] = true;}; 
 
 function Mounts.OnInitialize()
 	Mounts:RegisterChatCommand("mountyourface", Mount);
