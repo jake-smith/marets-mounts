@@ -1,7 +1,9 @@
 local Mounts = LibStub("AceAddon-3.0"):NewAddon("MaretsMounts", "AceConsole-3.0")
 _G.Mounts = Mounts
 
-local MountLib = LibStub("LibMounts-1.0");
+local LibMountsData = LibStub("LibMounts-1.0_Data");
+local LibMounts = LibStub("LibMounts-1.0");
+
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDB = LibStub("AceDB-3.0")
 local AceConfig = LibStub("AceConfig-3.0")
@@ -13,6 +15,7 @@ local defaults = {
 		Ground = {},
 		Flying = {},
 		Swimming = {},
+		Repair = {},
 	}
 }
 
@@ -24,44 +27,107 @@ local options = {
     args = {}	
 }
 
-local paladinMounts = {[34769] = true,[13819] = true, [66906] = true,[23214] = true, [34767] = true};
-local warlockMounts = {[5784] = true, [23161] = true};
-local dkMounts = {[48778] = true, [54729] = true}
+local options_slashcmd = {
+    name = "Maret's Mounts Slash Command",
+    handler = Mounts,
+    type = "group",
+    order = -2,
+    args = {
+        config = {
+            type = "execute",
+            name = "Open Config",
+            dialogHidden = true,
+            order = 1,
+            func = function(info) Mounts:OpenOptions() end
+        },
+        mount = {
+            type = "execute",
+            name = "Summon a Mount",
+            desc = "Summon a mount based on the current location",
+            order = 2,
+            func = function(info) Mounts:Mount() end
+        },
+        repair = {
+            type = "execute",
+            name = "Summon Repair Mount",
+            desc = "Summon a random repair mount",
+            order = 3,
+            func = function(info) Mounts:MountRepair() end
+        }
+    },
+}
 
-local shapeshiftAir = {};
-local shapeshiftGround = {};
-local shapeshiftWater = {};
-local itemMounts = {}; 
+MM_MountButton = CreateFrame("Button", "MaretsMountsNormal", UIParent, "SecureActionButtonTemplate");
+MM_RepairMountButton = CreateFrame("Button", "MaretsMountsRepair", UIParent, "SecureActionButtonTemplate");
 
---local shapeshiftAir = {[33943] = true, [40120] = true};
---local shapeshiftGround = {[783] = true};
---local shapeshiftWater = {[1066] = true};
---local itemMounts = {[101641] = true;}; 
+function MM_MountButton:Initialize()
+	MM_MountButton:SetScript("PreClick", function(s,m,d) MM_MountButton:PreClick() end)
+	--MM_MountButton:SetAttribute("type", "macro");
+	--MM_MountButton:SetAttribute("macrotext", "/mountyourface mount");
+end
+
+function MM_MountButton:PreClick()
+	local idToCall = nil
+	
+	if not IsMounted() then
+		idToCall = Mounts:GetRandomMountID()
+	else
+		MM_MountButton:SetAttribute("type", "macro")
+		MM_MountButton:SetAttribute("macrotext", "/dismount")
+		return;
+	end
+	
+	local type = LibMountsExt:GetMountType(idToCall)
+	
+	if type == LibMountsExt.Types.SPELL then
+		local spellName = GetSpellInfo(idToCall);
+		MM_MountButton:SetAttribute("type", "spell")
+		MM_MountButton:SetAttribute("spell", spellName)
+	elseif type == LibMountsExt.Types.ITEM then
+		local itemName = GetItemInfo(idToCall);
+		MM_MountButton:SetAttribute("type", "item");
+		MM_MountButton:SetAttribute("item", itemName);
+
+	else
+		local mountid, creatureID, creatureName, creatureSpellID, icon, issummoned = LibMountsExt:GetMountInfo(idToCall)
+	
+		MM_MountButton:SetAttribute("type", "spell");
+		MM_MountButton:SetAttribute("spell", creatureName);
+	end
+end
+
+function MM_RepairMountButton:Initialize()
+
+	MM_RepairMountButton:SetAttribute("type", "macro");
+	MM_RepairMountButton:SetAttribute("macrotext", "/mountyourface repair");
+end
 
 function Mounts.OnInitialize()
-	Mounts:RegisterChatCommand("mountyourface", Mount);
-	
+	AceConfig:RegisterOptionsTable("Marets Mounts Slash Cmd", options_slashcmd, {"mountyourface", "marets", "maretsmounts"})
 	MountsDB = AceDB:New("MaretsMountsDB", defaults, true);
+	
+	MM_MountButton:Initialize()
+	MM_RepairMountButton:Initialize()
+
 	Mounts.db = MountsDB;
 end
 
 function Mounts:OnEnable()
-	Mounts:BuildGroundMountOptions();
+	Mounts:BuildMountOptions();
 	
-	if GetMacroInfo('Mount Your Face') == nil then
-		CreateMacro("Mount Your Face", "ability_mount_drake_proto", "/mountyourface", nil);
+	local index = GetMacroIndexByName("Mount Your Face");
+	
+	if index == 0 then
+		CreateMacro("Mount Your Face", "ability_mount_drake_proto", "/click [btn:2] MaretsMountsRepair; MaretsMountsNormal", nil);
+	else
+		EditMacro(index, "Mount Your Face", "ability_mount_drake_proto", "/click [btn:2] MaretsMountsRepair; MaretsMountsNormal");
 	end
 end
 
-function Mounts:GetMountSpellIDFromSummonID(summonID)
-
-	local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", summonID);
-
-	return creatureSpellID;
-end
-
-function Mounts:BuildGroundMountOptions()
-	local groundMounts = MountLib:GetMountList(MountLib.GROUND);
+function Mounts:BuildMountOptions()
+	local groundMounts = LibMounts:GetMountList(LibMounts.GROUND);
+	
+	local shapeshiftGround = LibMountsExt:GetSpecialMountList(LibMounts.GROUND);
 	
 	for key,value in pairs(shapeshiftGround) do
 		groundMounts[key] = value;
@@ -69,40 +135,41 @@ function Mounts:BuildGroundMountOptions()
 	
 	local groundGuys = {};
 	
-	Mounts:MakeMountTable(groundMounts, groundGuys, MountLib.GROUND);
+	Mounts:MakeMountTable(groundMounts, groundGuys, LibMounts.GROUND);
 	
 	options.args['Ground'] = {};
 	options.args.Ground['type'] = 'group';
-	options.args.Ground['name'] = 'Ground Mounts';
+	options.args.Ground['name'] = 'Ground';
 	
 	options.args.Ground.args = groundGuys;
 	
-	local airMounts = MountLib:GetMountList(MountLib.AIR);
+	local airMounts = LibMounts:GetMountList(LibMounts.AIR);
+
+	local shapeshiftAir = LibMountsExt:GetSpecialMountList(LibMounts.AIR);
 
 	for key,value in pairs(shapeshiftAir) do
 		airMounts[key] = value;
-	end
-
-	for key,value in pairs(itemMounts) do
-		airMounts[key] = value;
+		print (airMounts[key])
 	end
 
 	local airGuys = {};
 	
-	Mounts:MakeMountTable(airMounts, airGuys, MountLib.AIR);
+	Mounts:MakeMountTable(airMounts, airGuys, LibMounts.AIR);
 	
 	options.args['Air'] = {};
 	options.args.Air['type'] = 'group';
-	options.args.Air['name'] = 'Flying Mounts';
+	options.args.Air['name'] = 'Flying';
 	
 	options.args.Air.args = airGuys;
 	
-	local waterMounts = MountLib:GetMountList(MountLib.WATER);
-	local vashjir = MountLib:GetMountList(MountLib.VASHJIR);
+	local waterMounts = LibMounts:GetMountList(LibMounts.WATER);
+	local vashjir = LibMounts:GetMountList(LibMounts.VASHJIR);
 
 	for key,value in pairs(vashjir) do
 		waterMounts[key] = value;
 	end
+
+	local shapeshiftWater = LibMountsExt:GetSpecialMountList(LibMounts.WATER);
 
 	for key,value in pairs(shapeshiftWater) do
 		waterMounts[key] = value;
@@ -110,16 +177,29 @@ function Mounts:BuildGroundMountOptions()
 
 	local waterGuys = {};
 	
-	Mounts:MakeMountTable(waterMounts, waterGuys, MountLib.WATER);
+	Mounts:MakeMountTable(waterMounts, waterGuys, LibMounts.WATER);
 	
 	options.args['Water'] = {};
 
 	options.args.Water['type'] = 'group';
-	options.args.Water['name'] = 'Swimming Mounts';
+	options.args.Water['name'] = 'Swimming';
 	
 	options.args.Water.args = waterGuys;
 	
-	AceConfig:RegisterOptionsTable("MaretsMounts", options, {'config'});
+	local repairGuys = {};
+	local repairMounts = {};
+	
+	repairMounts = LibMountsExt.data["vendorrepair"];
+	
+	Mounts:MakeMountTable(repairMounts, repairGuys, LibMountsExt.REPAIR);
+	
+	options.args['Repair'] = {};
+	options.args.Repair['type'] = 'group';
+	options.args.Repair['name'] = 'Repair/Vendor';
+	
+	options.args.Repair.args = repairGuys;
+	
+	AceConfig:RegisterOptionsTable("MaretsMounts", options);
 	AceConfigDialog.AddToBlizOptions("MaretsMounts", "MaretsMounts")
 end
 
@@ -131,28 +211,27 @@ function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
 		local spellid;
 		local disabled, message = false, nil;
 
-		if shapeshiftGround[key] or shapeshiftAir[key] or shapeshiftWater[key] or itemMounts[key] then
-			local spellId, spellName, spellLink = GetSpellInfo(key);
-			spellid = spellId;
-			name = spellName;
-		else
-			for mountId = 1, allMounts do
-				local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", mountId);
+		local type = LibMountsExt:GetMountType(key)
 
-				if creatureID == nil then
-					--continue;
-				elseif creatureSpellID == key then
-					name = creatureName;
-					spellid = creatureSpellID;
-					break;
-				end
-			end
+		if type == LibMountsExt.Types.SPELL then
+			local spellName = GetSpellInfo(key);
+			spellid = key;
+			name = spellName;
+		elseif type == LibMountsExt.Types.ITEM then
+			local itemName = GetItemInfo(key);
+			spellid = key;
+			name = itemName;
+		else
+			local mountId, creatureID, creatureName, creatureSpellID, icon, issummoned = LibMountsExt:GetMountInfo(key);
 			
+			name = creatureName
+			spellid = creatureSpellID
+
 			if (name ~= nil) then
 				disabled, message = Mounts:GetRestrictions(spellid);
 			end
 		end
-		if (name ~= nil) then
+		if (name ~= nil and Mounts:IsMountValidForPlayer(spellid)) then
 			optionsTable[name] = {
 								type = 'toggle',
 								name = name,
@@ -166,9 +245,9 @@ function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
 end
 
 function Mounts:GetRestrictions(spellid)
-	local summonable, profession, level = MountLib:GetProfessionRestriction(spellid);
+	local summonable, profession, level = LibMounts:GetProfessionRestriction(spellid);
 	
-	local ground, air, water, speed, location, passengers = MountLib:GetMountInfo(spellid);
+	local ground, air, water, speed, location, passengers = LibMounts:GetMountInfo(spellid);
 	
 	local disabled = false;
 	local message;
@@ -184,20 +263,6 @@ function Mounts:GetRestrictions(spellid)
 	return disabled, message;
 end
 
-function Mounts:GetMountSummonID(spellid)
-	local allMounts = GetNumCompanions("MOUNT");
-
-	for mountId = 1, allMounts do
-		local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", mountId);
-
-		if creatureID == nil then
-				--continue
-		elseif creatureSpellID == spellid then
-			return mountId;
-		end
-	end
-end
-
 function Mounts:SetMountSummonState(info, value, spellid, mounttype)
 	if value == true then
 		Mounts:AddMountAsSummonable(spellid, mounttype);
@@ -207,22 +272,26 @@ function Mounts:SetMountSummonState(info, value, spellid, mounttype)
 end
 
 function Mounts:AddMountAsSummonable(spellid, mounttype)
-	if mounttype == 'ground' then
+	if mounttype == LibMounts.GROUND then
 		MountsDB.profile.Ground[#MountsDB.profile.Ground+1] = spellid;
-	elseif mounttype == 'air' then
+	elseif mounttype == LibMounts.AIR then
 		MountsDB.profile.Flying[#MountsDB.profile.Flying+1] = spellid;
-	elseif mounttype == 'water' then
+	elseif mounttype == LibMounts.Water then
 		MountsDB.profile.Swimming[#MountsDB.profile.Swimming+1] = spellid;
+	elseif mounttype == LibMountsExt.REPAIR then
+		MountsDB.profile.Repair[#MountsDB.profile.Repair+1] = spellid;
 	end
 end
 
 function Mounts:RemoveMountAsSummonable(spellid, mounttype)
-	if mounttype == 'ground' then
+	if mounttype == LibMounts.GROUND then
 		Mounts:RemoveMountFromTable(MountsDB.profile.Ground, spellid);
-	elseif mounttype == 'air' then
+	elseif mounttype == LibMounts.AIR then
 		Mounts:RemoveMountFromTable(MountsDB.profile.Flying, spellid);
-	elseif mounttype == 'water' then
+	elseif mounttype == LibMounts.WATER then
 		Mounts:RemoveMountFromTable(MountsDB.profile.Swimming, spellid);
+	elseif mounttype == LibMountsExt.REPAIR then
+		Mounts:RemoveMountFromTable(MountsDB.profile.Repair, spellid);
 	end
 end
 
@@ -245,20 +314,26 @@ end
 
 function Mounts:GetMountSummonState(spellid, mounttype, info)
 
-	if mounttype == 'ground' then
+	if mounttype == LibMounts.GROUND then
 		for key,value in pairs(MountsDB.profile.Ground) do
 			if value == spellid then
 				return true;
 			end
 		end
-	elseif mounttype == 'air' then
+	elseif mounttype == LibMounts.AIR then
 		for key,value in pairs(MountsDB.profile.Flying) do
 			if value == spellid then
 				return true;
 			end
 		end
-	elseif mounttype == 'water' then
+	elseif mounttype == LibMounts.WATER then
 		for key,value in pairs(MountsDB.profile.Swimming) do
+			if value == spellid then
+				return true;
+			end
+		end
+	elseif mounttype == LibMountsExt.REPAIR then
+		for key,value in pairs(MountsDB.profile.Repair) do
 			if value == spellid then
 				return true;
 			end
@@ -268,25 +343,58 @@ function Mounts:GetMountSummonState(spellid, mounttype, info)
 	return false;
 end
 
-function Mount()
-	local idToCall = nil;
-	
-	if not IsMounted() then
-		if IsFlyableArea() then
-			while not IsMountUsable(idToCall) do
-				idToCall = MountsDB.profile.Flying[random(#MountsDB.profile.Flying)];
-			end
-		elseif IsSwimming() then
-			while not IsMountUsable(idToCall) do
-				idToCall = MountsDB.profile.Swimming[random(#MountsDB.profile.Swimming)];
-			end
-		else
-			while not IsMountUsable(idToCall) do
-				idToCall = MountsDB.profile.Ground[random(#MountsDB.profile.Ground)];
-			end
-		end
+function Mounts:IsMountValidForPlayer(id)
+	if id == nil then
+		return false;
+	end
 
-		idToCall = Mounts:GetMountSummonID(idToCall);
+	local type = LibMountsExt:GetMountType(id)
+
+	if type == LibMountsExt.Types.ITEM then
+		local count = GetItemCount(id, true)
+		if count > 0 then
+			return true
+		else
+			return false
+		end
+	elseif type == LibMountsExt.Types.SPELL then
+		return IsSpellKnown(id)
+	else
+		local currentCanUse, restricted = LibMountsExt:IsMountClassRestricted(id)
+		
+		return currentCanUse
+	end
+
+	return true;
+end
+
+function Mounts:GetRandomMountID()
+	local idToCall = nil
+
+	if IsSwimming() and IsSubmerged() and #MountsDB.profile.Swimming > 0 then
+		while not LibMountsExt:IsMountUsable(idToCall) and not LibMountsExt:IsMountClassRestricted(idToCall) do
+			idToCall = MountsDB.profile.Swimming[random(#MountsDB.profile.Swimming)];
+		end
+	elseif IsFlyableArea() and #MountsDB.profile.Flying > 0 then
+		while not LibMountsExt:IsMountUsable(idToCall) and not LibMountsExt:IsMountClassRestricted(idToCall) do
+			idToCall = MountsDB.profile.Flying[random(#MountsDB.profile.Flying)];
+		end
+	elseif #MountsDB.profile.Ground > 0 then
+		while not LibMountsExt:IsMountUsable(idToCall) and not LibMountsExt:IsMountClassRestricted(idToCall) do
+			idToCall = MountsDB.profile.Ground[random(#MountsDB.profile.Ground)];
+		end
+	end
+	
+	return idToCall
+end
+
+function Mounts:Mount()
+	local idToCall = nil;
+
+	if not IsMounted() then
+		idToCall = Mounts:GetRandomMountID()
+
+		idToCall = LibMountsExt:GetMountInfo(idToCall);
 		
 		CallCompanion("Mount", idToCall);
 	else
@@ -294,42 +402,181 @@ function Mount()
 	end
 end
 
-function IsMountUsable(spellid)
+function Mounts:MountRepair()
+	local idToCall = nil;
+
+	if IsMounted() then
+		Dismount();
+	end
+	
+	while not LibMountsExt:IsMountUsable(idToCall) and #MountsDB.profile.Repair > 0 do
+		idToCall = MountsDB.profile.Repair[random(#MountsDB.profile.Repair)];
+	end
+	
+	idToCall = LibMountsExt:GetMountInfo(idToCall);
+		
+	CallCompanion("Mount", idToCall);
+end
+
+
+
+LibMountsExt = {
+	REPAIR = {},
+	data = {},
+	Types = {},
+}
+
+LibMountsExt.REPAIR = "repair"
+
+LibMountsExt.Types.ITEM = "item"
+LibMountsExt.Types.SPELL = "spell"
+LibMountsExt.Types.MOUNT = "mount"
+
+LibMountsExt.data["paladin"] = {
+	[34769] = true,
+	[13819] = true,
+	[66906] = true,
+	[23214] = true,
+	[34767] = true
+}
+
+LibMountsExt.data["warlock"] = {
+	[5784] = true,
+	[23161] = true
+}
+
+LibMountsExt.data["deathknight"] = {
+	[48778] = true,
+	[54729] = true
+}
+
+LibMountsExt.data["vendorrepair"] = {
+	[61425] = true, -- Traveler's Tundra Mammoth (Alliance)
+	[61447] = true, -- Traveler's Tundra Mammoth (Horde)
+	[122708] = true -- Grand Expedition Yak
+}
+
+LibMountsExt.data["shapeshift"] = {
+	[33943] = LibMounts.AIR, 
+	[40120] = LibMounts.AIR,
+	[783] = LibMounts.GROUND,
+	[1066] = LibMounts.WATER
+}
+
+LibMountsExt.data["items"] = {
+	[71086] = LibMounts.AIR -- Tarecgosa's Visage
+}
+
+function LibMountsExt:GetMountInfo(spellid)
+	local allMounts = GetNumCompanions("MOUNT");
+
+	for mountId = 1, allMounts do
+		local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", mountId);
+		if creatureID == nil then
+				--continue
+		elseif creatureSpellID == spellid then
+			return mountId, creatureID, creatureName, creatureSpellID, icon, issummoned;
+		end
+	end
+end
+
+function LibMountsExt:GetSpecialMountList(mounttype)
+
+	local returnShifts = {};
+	for k,v in pairs(LibMountsExt.data["shapeshift"]) do
+		if v == mounttype then
+			returnShifts[k] = true;
+		end
+	end
+	
+	for k,v in pairs(LibMountsExt.data["items"]) do
+		if v == mounttype then
+			returnShifts[k] = true;
+		end
+	end
+
+	return returnShifts;
+end
+
+function LibMountsExt:GetMountType(id)
+	if LibMountsExt.data["shapeshift"][id] ~= nil then
+		return LibMountsExt.Types.SPELL
+	elseif LibMountsExt.data["items"][id] ~= nil then
+		return LibMountsExt.Types.ITEM
+	else
+		return LibMountsExt.Types.MOUNT
+	end
+end
+
+--Returns CanPlayerUse and HasClassRestrictions
+function LibMountsExt:IsMountClassRestricted(id)
+	if (id == nil) then
+		return false, false
+	end
+
+	local localizename, englishname = UnitClass("player");
+	
+	if LibMountsExt.data["paladin"][id] then
+		if englishname ~= 'PALADIN' then
+			return false, true;
+		else
+			return true, true
+		end
+	end
+	if LibMountsExt.data["warlock"][id] then
+		if englishname ~= 'WARLOCK' then
+			return false, true;
+		else
+			return true, true
+		end
+	end
+	if LibMountsExt.data["deathknight"][id] then
+		if englishname ~= 'DEATHKNIGHT' then
+			return false, true;
+		else
+			return true, true
+		end
+	end
+	
+	return true, false
+end
+
+function LibMountsExt:IsMountUsable(spellid)
 	if spellid == nil then
 		return false;
 	end
 
-	local primary, secondary, thirdary = MountLib:GetCurrentMountType();
-	local ground, air, water, speed, location, passengers = MountLib:GetMountInfo(spellid);
-	local localizename, englishname = UnitClass("player");
+	local type = LibMountsExt:GetMountType(spellid)
+
+	if type == LibMountsExt.Types.ITEM then
+		return LibMountsExt:IsItemUsable(spellid)
+	elseif type == LibMountsExt.Types.Mount then
 	
-	if location == MountLib.VASHJIR then		
-		if primary == MountLib.VASHJIR or secondary == MountLib.VASHJIR then
-			return true;
-		else
-			return false;
-		end
-	end
-	if englishname ~= 'PALADIN' then
-		if paladinMounts[spellid] then
-			return false;
-		end
-	end
-	if englishname ~= 'WARLOCK' then
-		if warlockMounts[spellid] then
-			return false;
-		end
-	end
-	if englishname ~= 'DEATHKNIGHT' then
-		if dkMounts[spellid] then
-			return false;
-		end
-	end
-	if englishname ~= 'DRUID' then
-		if shapeshiftGround[spellid] or shapeshiftAir[spellid] or shapeshiftWater[spellid] or itemMounts[spellid] then
-			return false;
-		end
-	end
+		local primary, secondary, thirdary = LibMounts:GetCurrentMountType();
+		local ground, air, water, speed, location, passengers = LibMounts:GetMountInfo(spellid);
 	
+		if location == LibMounts.VASHJIR then		
+			if primary == LibMounts.VASHJIR or secondary == LibMounts.VASHJIR then
+				return true;
+			else
+				return false;
+			end
+		end
+	end
 	return true;
+end
+
+function LibMountsExt:IsItemUsable(id)
+	local count = GetItemCount(id)
+	if count > 0 then
+		if IsEquippableItem(id) and IsEquippedItem(id) then
+			return true
+		elseif IsUsableItem(id) and not IsEquippableItem(id) then
+			return true
+		else
+			return false
+		end
+	else
+		return false
+	end
 end
