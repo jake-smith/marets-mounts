@@ -5,6 +5,7 @@ local LibMountsData = LibStub("LibMounts-1.0_Data");
 local LibMounts = LibStub("LibMounts-1.0");
 
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
+local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local AceDB = LibStub("AceDB-3.0")
 local AceConfig = LibStub("AceConfig-3.0")
 
@@ -145,8 +146,8 @@ function Mounts:OpenOptions()
 end
 
 function Mounts:UpdateMountOptions()
-	Mounts:BuildMountsOptions()
-	AceConfig:NotifyChange("MaretsMounts")
+	Mounts:BuildMountOptions()
+	AceConfigRegistry:NotifyChange("MaretsMounts")
 end
 
 function Mounts:BuildMountOptions()
@@ -382,7 +383,7 @@ function Mounts:IsMountValidForPlayer(id)
 	local type = LibMountsExt:GetMountType(id)
 
 	if type == LibMountsExt.Types.ITEM then
-		local count = GetItemCount(id, true)
+		local count = GetItemCount(id)
 		if count > 0 then
 			return true
 		else
