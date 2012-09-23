@@ -19,4 +19,4 @@ externals:
         tag: latest
     libs/LibMounts-1.0:
         url: svn://svn.wowace.com/wow/libmounts-1-0/mainline/trunk
-        tag: r60
+        tag: latest
