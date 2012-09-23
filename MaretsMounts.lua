@@ -124,11 +124,8 @@ function Mounts:OnEnable()
 	
 	Mounts.optionsFrame:RegisterEvent("COMPANION_LEARNED")
 	Mounts.optionsFrame:RegisterEvent("COMPANION_UNLEARNED")
-	Mounts.optionsFrame:RegisterEvent("UNIT_LEVEL")
-	Mounts.optionsFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
-	Mounts.optionsFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
-	--Mounts.optionsFrame:RegisterEvent("BAG_UPDATE")
-	Mounts.optionsFrame:SetScript("OnEvent", function () Mounts:UpdateMountOptions() end)
+	Mounts.optionsFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
+	Mounts.optionsFrame:SetScript("OnEvent", function (self, event) Mounts:UpdateMountOptions(self, event) end)
 	
 	local index = GetMacroIndexByName("Mount Your Face");
 	
@@ -139,13 +136,20 @@ function Mounts:OnEnable()
 	end
 end
 
+function Mounts:OnDisable()
+	Mounts.optionsFrame:UnregisterEvent("COMPANION_LEARNED")
+	Mounts.optionsFrame:UnregisterEvent("COMPANION_UNLEARNED")
+	Mounts.optionsFrame:UnregisterEvent("LEARNED_SPELL_IN_TAB")
+end
+
 --Options config
 
 function Mounts:OpenOptions()
 	InterfaceOptionsFrame_OpenToCategory(Mounts.optionsFrame)
 end
 
-function Mounts:UpdateMountOptions()
+function Mounts:UpdateMountOptions(self, event)
+	print(event)
 	Mounts:BuildMountOptions()
 	AceConfigRegistry:NotifyChange("MaretsMounts")
 end
