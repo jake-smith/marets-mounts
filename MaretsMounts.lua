@@ -383,7 +383,7 @@ function Mounts:IsMountValidForPlayer(id)
 	local type = LibMountsExt:GetMountType(id)
 
 	if type == LibMountsExt.Types.ITEM then
-		local count = GetItemCount(id)
+		local count = GetItemCount(id, true)
 		if count > 0 then
 			return true
 		else
