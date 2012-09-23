@@ -127,7 +127,7 @@ function Mounts:OnEnable()
 	Mounts.optionsFrame:RegisterEvent("UNIT_LEVEL")
 	Mounts.optionsFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 	Mounts.optionsFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
-	Mounts.optionsFrame:RegisterEvent("BAG_UPDATE")
+	--Mounts.optionsFrame:RegisterEvent("BAG_UPDATE")
 	Mounts.optionsFrame:SetScript("OnEvent", function () Mounts:UpdateMountOptions() end)
 	
 	local index = GetMacroIndexByName("Mount Your Face");
