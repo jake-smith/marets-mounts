@@ -149,7 +149,6 @@ function Mounts:OpenOptions()
 end
 
 function Mounts:UpdateMountOptions(self, event)
-	print(event)
 	Mounts:BuildMountOptions()
 	AceConfigRegistry:NotifyChange("MaretsMounts")
 end
