@@ -287,26 +287,58 @@ function Mounts:SetMountSummonState(info, value, spellid, mounttype)
 end
 
 function Mounts:AddMountAsSummonable(spellid, mounttype)
+	local hasOther, otherSpellID = LibMountsExt:HasOtherFactionEquivalent(spellid)
+
+	local tableToAddTo
+	
 	if mounttype == LibMounts.GROUND then
-		Mounts.db.profile.Ground[#Mounts.db.profile.Ground+1] = spellid;
+		tableToAddTo = Mounts.db.profile.Ground
+		--Mounts.db.profile.Ground[#Mounts.db.profile.Ground+1] = spellid;
+		
+		--if hasOther then
+			--Mounts.db.profile.Ground[#Mounts.db.profile.Ground+1] = otherSpellID;
+		--end
 	elseif mounttype == LibMounts.AIR then
-		Mounts.db.profile.Flying[#Mounts.db.profile.Flying+1] = spellid;
+		tableToAddTo = Mounts.db.profile.Flying
+		--Mounts.db.profile.Flying[#Mounts.db.profile.Flying+1] = spellid;
 	elseif mounttype == LibMounts.WATER then
-		Mounts.db.profile.Swimming[#Mounts.db.profile.Swimming+1] = spellid;
+		tableToAddTo = Mounts.db.profile.Swimming
+		--Mounts.db.profile.Swimming[#Mounts.db.profile.Swimming+1] = spellid;
 	elseif mounttype == LibMountsExt.REPAIR then
-		Mounts.db.profile.Repair[#Mounts.db.profile.Repair+1] = spellid;
+		tableToAddTo = Mounts.db.profile.Repair
+		--Mounts.db.profile.Repair[#Mounts.db.profile.Repair+1] = spellid;
+	end
+	
+	tableToAddTo[#tableToAddTo+1] = spellid;
+		
+	if hasOther then
+		tableToAddTo[#tableToAddTo+1] = otherSpellID;
 	end
 end
 
 function Mounts:RemoveMountAsSummonable(spellid, mounttype)
+	local tableToRemoveFrom
+	
+	local hasOther, otherSpellId = LibMountsExt:HasOtherFactionEquivalent(spellid)
+	
 	if mounttype == LibMounts.GROUND then
-		Mounts:RemoveMountFromTable(Mounts.db.profile.Ground, spellid);
+		tableToRemoveFrom = Mounts.db.profile.Ground
+		--Mounts:RemoveMountFromTable(Mounts.db.profile.Ground, spellid);
 	elseif mounttype == LibMounts.AIR then
-		Mounts:RemoveMountFromTable(Mounts.db.profile.Flying, spellid);
+		tableToRemoveFrom = Mounts.db.profile.Flying
+		--Mounts:RemoveMountFromTable(Mounts.db.profile.Flying, spellid);
 	elseif mounttype == LibMounts.WATER then
-		Mounts:RemoveMountFromTable(Mounts.db.profile.Swimming, spellid);
+		tableToRemoveFrom = Mounts.db.profile.Swimming
+		--Mounts:RemoveMountFromTable(Mounts.db.profile.Swimming, spellid);
 	elseif mounttype == LibMountsExt.REPAIR then
-		Mounts:RemoveMountFromTable(Mounts.db.profile.Repair, spellid);
+		tableToRemoveFrom = Mounts.db.profile.Repair
+		--Mounts:RemoveMountFromTable(Mounts.db.profile.Repair, spellid);
+	end
+	
+	Mounts:RemoveMountFromTable(tableToRemoveFrom, spellid);
+	
+	if hasOther then
+		Mounts:RemoveMountFromTable(tableToRemoveFrom, otherSpellId);
 	end
 end
 
@@ -320,11 +352,13 @@ function Mounts:RemoveMountFromTable(mountTable, valueToRemove)
 		end
 	end
 	
-	for index = keyToRemove, #mountTable-1 do
-		mountTable[index] = mountTable[index+1];
-	end
+	if keyToRemove ~= nil then
+		--for index = keyToRemove, #mountTable-1 do
+			--mountTable[index] = mountTable[index+1];
+		--end
 	
-	table.remove(mountTable);
+		table.remove(mountTable, keyToRemove);
+	end
 end
 
 function Mounts:GetMountSummonState(spellid, mounttype, info)
@@ -502,6 +536,14 @@ LibMountsExt.data["shapeshift"] = {
 	[1066] = LibMounts.WATER
 }
 
+--Key = Horde, Value = Alliance
+LibMountsExt.data["factionequivalent"] = {
+		[118737] = 130985, --Pandaren Kite
+		[61467] = 61465, -- Grand Black War Mammoth
+		[61469] = 61470, -- Grand Ice Mammoth
+		[61447] = 61425 -- Traveler's Tundra Mammoth
+}
+
 LibMountsExt.data["items"] = {
 	[71086] = LibMounts.AIR -- Tarecgosa's Visage
 }
@@ -545,6 +587,19 @@ function LibMountsExt:GetMountType(id)
 	else
 		return LibMountsExt.Types.MOUNT
 	end
+end
+
+--Returns true, and other faction id. And just false otherwise
+function LibMountsExt:HasOtherFactionEquivalent(id)
+	for h,a in pairs(LibMountsExt.data["factionequivalent"]) do
+		if h == id then
+			return true, a
+		elseif a == id then
+			return true, h
+		end
+	end
+	
+	return false
 end
 
 --Returns CanPlayerUse and HasClassRestrictions
