@@ -69,6 +69,12 @@ end
 function MMMountButton:PreClick()
 	local idToCall = nil
 	
+	if InCombatLockdown() then
+		-- If we are in combat, just try to call our first ground mount so we get the error message
+		CallCompanion("MOUNT", Mounts.db.profile.Ground[1])
+		return
+	end
+	
 	if not IsMounted() then
 		idToCall = Mounts:GetRandomMountID()
 	else
@@ -87,7 +93,6 @@ function MMMountButton:PreClick()
 		local itemName = GetItemInfo(idToCall);
 		MMMountButton:SetAttribute("type", "item");
 		MMMountButton:SetAttribute("item", itemName);
-
 	else
 		local mountid, creatureID, creatureName, creatureSpellID, icon, issummoned = LibMountsExt:GetMountInfo(idToCall)
 		MMMountButton:SetAttribute("type", "spell");
@@ -293,20 +298,12 @@ function Mounts:AddMountAsSummonable(spellid, mounttype)
 	
 	if mounttype == LibMounts.GROUND then
 		tableToAddTo = Mounts.db.profile.Ground
-		--Mounts.db.profile.Ground[#Mounts.db.profile.Ground+1] = spellid;
-		
-		--if hasOther then
-			--Mounts.db.profile.Ground[#Mounts.db.profile.Ground+1] = otherSpellID;
-		--end
 	elseif mounttype == LibMounts.AIR then
 		tableToAddTo = Mounts.db.profile.Flying
-		--Mounts.db.profile.Flying[#Mounts.db.profile.Flying+1] = spellid;
 	elseif mounttype == LibMounts.WATER then
 		tableToAddTo = Mounts.db.profile.Swimming
-		--Mounts.db.profile.Swimming[#Mounts.db.profile.Swimming+1] = spellid;
 	elseif mounttype == LibMountsExt.REPAIR then
 		tableToAddTo = Mounts.db.profile.Repair
-		--Mounts.db.profile.Repair[#Mounts.db.profile.Repair+1] = spellid;
 	end
 	
 	tableToAddTo[#tableToAddTo+1] = spellid;
@@ -323,16 +320,12 @@ function Mounts:RemoveMountAsSummonable(spellid, mounttype)
 	
 	if mounttype == LibMounts.GROUND then
 		tableToRemoveFrom = Mounts.db.profile.Ground
-		--Mounts:RemoveMountFromTable(Mounts.db.profile.Ground, spellid);
 	elseif mounttype == LibMounts.AIR then
 		tableToRemoveFrom = Mounts.db.profile.Flying
-		--Mounts:RemoveMountFromTable(Mounts.db.profile.Flying, spellid);
 	elseif mounttype == LibMounts.WATER then
 		tableToRemoveFrom = Mounts.db.profile.Swimming
-		--Mounts:RemoveMountFromTable(Mounts.db.profile.Swimming, spellid);
 	elseif mounttype == LibMountsExt.REPAIR then
 		tableToRemoveFrom = Mounts.db.profile.Repair
-		--Mounts:RemoveMountFromTable(Mounts.db.profile.Repair, spellid);
 	end
 	
 	Mounts:RemoveMountFromTable(tableToRemoveFrom, spellid);
