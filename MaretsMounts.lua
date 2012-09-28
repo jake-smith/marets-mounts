@@ -69,9 +69,12 @@ end
 function MMMountButton:PreClick()
 	local idToCall = nil
 	
-	if InCombatLockdown() then
-		-- If we are in combat, just try to call our first ground mount so we get the error message
-		CallCompanion("MOUNT", Mounts.db.profile.Ground[1])
+	if IsMounted() then
+		Dismount()
+		return
+	end
+	
+	if not Mounts:CanMountNow() then
 		return
 	end
 	
@@ -101,7 +104,19 @@ function MMMountButton:PreClick()
 end
 
 function MMRepairMountButton:Initialize()
+	MMRepairMountButton:SetScript("PreClick", function(s,m,d) MMRepairMountButton:PreClick() end)
+end
 
+function MMRepairMountButton:PreClick()
+	if IsMounted() then
+		Dismount()
+		return
+	end
+
+	if not Mounts:CanMountNow() then
+		return
+	end
+	
 	MMRepairMountButton:SetAttribute("type", "macro");
 	MMRepairMountButton:SetAttribute("macrotext", "/mountyourface repair");
 end
@@ -457,9 +472,12 @@ end
 function Mounts:Mount()
 	local idToCall = nil;
 
-	if InCombatLockdown() then
-		-- If we are in combat, just try to call our first ground mount so we get the error message
-		CallCompanion("MOUNT", Mounts.db.profile.Ground[1])
+	if IsMounted() then
+		Dismount()
+		return
+	end
+
+	if not Mounts:CanMountNow() then
 		return
 	end
 
@@ -477,14 +495,13 @@ end
 function Mounts:MountRepair()
 	local idToCall = nil;
 
-	if InCombatLockdown() then
-		-- If we are in combat, just try to call our first ground mount so we get the error message
-		CallCompanion("MOUNT", Mounts.db.profile.Ground[1])
+	if IsMounted() then
+		Dismount()
 		return
 	end
 
-	if IsMounted() then
-		Dismount();
+	if not Mounts:CanMountNow() then
+		return
 	end
 	
 	while not LibMountsExt:IsMountUsable(idToCall) and #Mounts.db.profile.Repair > 0 do
@@ -496,6 +513,15 @@ function Mounts:MountRepair()
 	CallCompanion("Mount", idToCall);
 end
 
+function Mounts:CanMountNow()
+	if IsIndoors() or InCombatLockdown() then
+		-- If we are in combat, just try to call our first ground mount so we get the error message
+		CallCompanion("MOUNT", LibMountsExt:GetMountSummonID(Mounts.db.profile.Ground[1]))
+		return false
+	end
+	
+	return true
+end
 
 --Helper for things that LibMounts does not have
 LibMountsExt = {
@@ -653,6 +679,10 @@ function LibMountsExt:IsMountUsable(spellid)
 		return IsSpellKnown(spellid)
 	elseif type == LibMountsExt.Types.MOUNT then
 	
+		if LibMountsExt:GetMountSummonID(spellid) == nil then
+			return false
+		end
+	
 		local primary, secondary, thirdary = LibMounts:GetCurrentMountType();
 		local ground, air, water, speed, location, passengers = LibMounts:GetMountInfo(spellid);
 
@@ -679,5 +709,19 @@ function LibMountsExt:IsItemUsable(id)
 		end
 	else
 		return false
+	end
+end
+
+function LibMountsExt:GetMountSummonID(spellid)
+	local allMounts = GetNumCompanions("MOUNT");
+
+	for mountId = 1, allMounts do
+		local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", mountId);
+
+		if creatureID == nil then
+				--continue
+		elseif creatureSpellID == spellid then
+			return mountId;
+		end
 	end
 end
