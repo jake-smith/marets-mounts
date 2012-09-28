@@ -457,6 +457,12 @@ end
 function Mounts:Mount()
 	local idToCall = nil;
 
+	if InCombatLockdown() then
+		-- If we are in combat, just try to call our first ground mount so we get the error message
+		CallCompanion("MOUNT", Mounts.db.profile.Ground[1])
+		return
+	end
+
 	if not IsMounted() then
 		idToCall = Mounts:GetRandomMountID()
 
@@ -470,6 +476,12 @@ end
 
 function Mounts:MountRepair()
 	local idToCall = nil;
+
+	if InCombatLockdown() then
+		-- If we are in combat, just try to call our first ground mount so we get the error message
+		CallCompanion("MOUNT", Mounts.db.profile.Ground[1])
+		return
+	end
 
 	if IsMounted() then
 		Dismount();
