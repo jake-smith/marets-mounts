@@ -576,7 +576,13 @@ LibMountsExt.data["factionequivalent"] = {
 }
 
 LibMountsExt.data["items"] = {
-	[71086] = LibMounts.AIR -- Tarecgosa's Visage
+	    [71086] = {
+            LibMounts.AIR,
+        },
+        [37011] = {
+            LibMounts.AIR,
+            LibMounts.GROUND,
+        }
 }
 
 function LibMountsExt:GetMountInfo(spellid)
@@ -602,8 +608,10 @@ function LibMountsExt:GetSpecialMountList(mounttype)
 	end
 	
 	for k,v in pairs(LibMountsExt.data["items"]) do
-		if v == mounttype then
-			returnShifts[k] = true;
+		for key, value in pairs(v) do
+			if value == mounttype then
+				returnShifts[k] = true;
+			end
 		end
 	end
 
