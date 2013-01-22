@@ -558,16 +558,11 @@ LibMountsExt.Types.SPELL = "spell"
 LibMountsExt.Types.MOUNT = "mount"
 
 LibMountsExt.data[LibMounts.GROUND] = {
-	[134573] = true --Swift Windsteed
+
 }
 
 LibMountsExt.data[LibMounts.AIR] = {
-	[134573] = true, --Swift Windsteed
-	[133023] = true, --Jade Pandaren Kite String
-	[136163] = true, --Grand Gryphon
-	[135416] = true, --Grand Armored Gryphon
-	[136164] = true, --Grand Wyvern
-	[135418] = true -- Grand Armored Wyvern
+
 }
 
 LibMountsExt.data["paladin"] = {
