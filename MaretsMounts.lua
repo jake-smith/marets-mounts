@@ -178,7 +178,7 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args = {}
 	
 	-- Create ground mounts for options table
-	local groundMounts = LibMounts:GetMountList(LibMounts.GROUND);
+	local groundMounts = Mounts:GetMountList(LibMounts.GROUND);
 	
 	local shapeshiftGround = LibMountsExt:GetSpecialMountList(LibMounts.GROUND);
 	
@@ -197,7 +197,7 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Ground.args = groundGuys;
 	
 	--Create air mounts for options table
-	local airMounts = LibMounts:GetMountList(LibMounts.AIR);
+	local airMounts = Mounts:GetMountList(LibMounts.AIR);
 
 	local shapeshiftAir = LibMountsExt:GetSpecialMountList(LibMounts.AIR);
 
@@ -216,8 +216,8 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Air.args = airGuys;
 	
 	-- create water mounts for options table
-	local waterMounts = LibMounts:GetMountList(LibMounts.WATER);
-	local vashjir = LibMounts:GetMountList(LibMounts.VASHJIR);
+	local waterMounts = Mounts:GetMountList(LibMounts.WATER);
+	local vashjir = Mounts:GetMountList(LibMounts.VASHJIR);
 
 	for key,value in pairs(vashjir) do
 		waterMounts[key] = value;
@@ -253,6 +253,27 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Repair['name'] = 'Repair/Vendor';
 	
 	Mounts.options.args.Repair.args = repairGuys;
+end
+
+function Mounts:GetMountList(mounttype)
+	local mountList = {};
+
+	local libMountsList = LibMounts:GetMountList(mounttype);
+	local extMountsList = LibMountsExt:GetMountList(mounttype);
+	
+	if (libMountsList ~= nil) then
+		for key,value in pairs(libMountsList) do
+			mountList[key] = value;
+		end
+	end
+	
+	if (extMountsList ~= nil) then
+		for key,value in pairs(extMountsList) do
+			mountList[key] = value;
+		end
+	end
+	
+	return mountList;
 end
 
 function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
@@ -536,6 +557,19 @@ LibMountsExt.Types.ITEM = "item"
 LibMountsExt.Types.SPELL = "spell"
 LibMountsExt.Types.MOUNT = "mount"
 
+LibMountsExt.data[LibMounts.GROUND] = {
+	[134573] = true --Swift Windsteed
+}
+
+LibMountsExt.data[LibMounts.AIR] = {
+	[134573] = true, --Swift Windsteed
+	[133023] = true, --Jade Pandaren Kite String
+	[136163] = true, --Grand Gryphon
+	[135416] = true, --Grand Armored Gryphon
+	[136164] = true, --Grand Wyvern
+	[135418] = true -- Grand Armored Wyvern
+}
+
 LibMountsExt.data["paladin"] = {
 	[34769] = true,
 	[13819] = true,
@@ -572,7 +606,9 @@ LibMountsExt.data["factionequivalent"] = {
 		[118737] = 130985, --Pandaren Kite
 		[61467] = 61465, -- Grand Black War Mammoth
 		[61469] = 61470, -- Grand Ice Mammoth
-		[61447] = 61425 -- Traveler's Tundra Mammoth
+		[61447] = 61425, -- Traveler's Tundra Mammoth
+		[136163] = 136164,
+		[135416] = 135418
 }
 
 LibMountsExt.data["items"] = {
@@ -596,6 +632,10 @@ function LibMountsExt:GetMountInfo(spellid)
 			return mountId, creatureID, creatureName, creatureSpellID, icon, issummoned;
 		end
 	end
+end
+
+function LibMountsExt:GetMountList(mounttype)
+	return LibMountsExt.data[mounttype];
 end
 
 function LibMountsExt:GetSpecialMountList(mounttype)
