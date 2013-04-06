@@ -1,4 +1,4 @@
-## Interface: 51000
+## Interface: 52000
 ## Title: Marets Mounts
 ## Author: Pandajerky
 ## OptDeps: Ace3,  LibMounts-1.0
@@ -10,6 +10,5 @@ Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceDB-3.0\AceDB-3.0.xml
 Libs\AceGUI-3.0\AceGUI-3.0.xml
-Libs\LibMounts-1.0\LibMounts-1.0\lib.xml
 
 MaretsMounts.lua

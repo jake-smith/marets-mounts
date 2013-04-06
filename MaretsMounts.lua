@@ -1,9 +1,6 @@
 local Mounts = LibStub("AceAddon-3.0"):NewAddon("MaretsMounts", "AceConsole-3.0")
 _G.Mounts = Mounts
 
-local LibMountsData = LibStub("LibMounts-1.0_Data");
-local LibMounts = LibStub("LibMounts-1.0");
-
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local AceDB = LibStub("AceDB-3.0")
@@ -86,18 +83,18 @@ function MMMountButton:PreClick()
 		return;
 	end
 	
-	local type = LibMountsExt:GetMountType(idToCall)
+	local type = MMHelper:GetMountType(idToCall)
 	
-	if type == LibMountsExt.Types.SPELL then
+	if type == MMHelper.Types.SPELL then
 		local spellName = GetSpellInfo(idToCall);
 		MMMountButton:SetAttribute("type", "spell")
 		MMMountButton:SetAttribute("spell", spellName)
-	elseif type == LibMountsExt.Types.ITEM then
+	elseif type == MMHelper.Types.ITEM then
 		local itemName = GetItemInfo(idToCall);
 		MMMountButton:SetAttribute("type", "item");
 		MMMountButton:SetAttribute("item", itemName);
 	else
-		local mountid, creatureID, creatureName, creatureSpellID, icon, issummoned = LibMountsExt:GetMountInfo(idToCall)
+		local mountid, creatureID, creatureName, creatureSpellID, icon, issummoned = MMHelper:GetMountInfo(idToCall)
 		MMMountButton:SetAttribute("type", "spell");
 		MMMountButton:SetAttribute("spell", creatureName);
 	end
@@ -178,17 +175,31 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args = {}
 	
 	-- Create ground mounts for options table
-	local groundMounts = Mounts:GetMountList(LibMounts.GROUND);
+	local groundMounts = {};
+	local airMounts = {};
+	local waterMounts = {};
+	local vashjir = {};
 	
-	local shapeshiftGround = LibMountsExt:GetSpecialMountList(LibMounts.GROUND);
-	
-	for key,value in pairs(shapeshiftGround) do
-		groundMounts[key] = value;
+	-- Use all mounts and create the mount list by their type
+	for id=1, GetNumCompanions("MOUNT"), 1 do
+		local creatureID, creatureName, creatureSpellID, icon, issummoned, mountTypeFlags = GetCompanionInfo("MOUNT", id)
+		
+		if bit.band(mountTypeFlags, 0x11) == 0x11 then 
+			groundMounts[creatureSpellID] = true
+		end
+		if bit.band(mountTypeFlags, 0x02) == 0x02 then 
+			airMounts[creatureSpellID] = true
+		end
+		if bit.band(mountTypeFlags, 0x08) == 0x08 then 
+			waterMounts[creatureSpellID] = true
+		end
 	end
+	
+	local shapeshiftGround = MMHelper:GetSpecialMountList(MMHelper.GROUND);
 	
 	local groundGuys = {};
 	
-	Mounts:MakeMountTable(groundMounts, groundGuys, LibMounts.GROUND);
+	Mounts:MakeMountTable(groundMounts, groundGuys, MMHelper.GROUND);
 	
 	Mounts.options.args['Ground'] = {};
 	Mounts.options.args.Ground['type'] = 'group';
@@ -197,9 +208,9 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Ground.args = groundGuys;
 	
 	--Create air mounts for options table
-	local airMounts = Mounts:GetMountList(LibMounts.AIR);
 
-	local shapeshiftAir = LibMountsExt:GetSpecialMountList(LibMounts.AIR);
+
+	local shapeshiftAir = MMHelper:GetSpecialMountList(MMHelper.AIR);
 
 	for key,value in pairs(shapeshiftAir) do
 		airMounts[key] = value;
@@ -207,7 +218,7 @@ function Mounts:BuildMountOptions()
 
 	local airGuys = {};
 	
-	Mounts:MakeMountTable(airMounts, airGuys, LibMounts.AIR);
+	Mounts:MakeMountTable(airMounts, airGuys, MMHelper.AIR);
 	
 	Mounts.options.args['Air'] = {};
 	Mounts.options.args.Air['type'] = 'group';
@@ -216,14 +227,12 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Air.args = airGuys;
 	
 	-- create water mounts for options table
-	local waterMounts = Mounts:GetMountList(LibMounts.WATER);
-	local vashjir = Mounts:GetMountList(LibMounts.VASHJIR);
 
 	for key,value in pairs(vashjir) do
 		waterMounts[key] = value;
 	end
 
-	local shapeshiftWater = LibMountsExt:GetSpecialMountList(LibMounts.WATER);
+	local shapeshiftWater = MMHelper:GetSpecialMountList(MMHelper.WATER);
 
 	for key,value in pairs(shapeshiftWater) do
 		waterMounts[key] = value;
@@ -231,7 +240,7 @@ function Mounts:BuildMountOptions()
 
 	local waterGuys = {};
 	
-	Mounts:MakeMountTable(waterMounts, waterGuys, LibMounts.WATER);
+	Mounts:MakeMountTable(waterMounts, waterGuys, MMHelper.WATER);
 	
 	Mounts.options.args['Water'] = {};
 
@@ -244,36 +253,15 @@ function Mounts:BuildMountOptions()
 	local repairGuys = {};
 	local repairMounts = {};
 	
-	repairMounts = LibMountsExt.data["vendorrepair"];
+	repairMounts = MMHelper.data["vendorrepair"];
 	
-	Mounts:MakeMountTable(repairMounts, repairGuys, LibMountsExt.REPAIR);
+	Mounts:MakeMountTable(repairMounts, repairGuys, MMHelper.REPAIR);
 	
 	Mounts.options.args['Repair'] = {};
 	Mounts.options.args.Repair['type'] = 'group';
 	Mounts.options.args.Repair['name'] = 'Repair/Vendor';
 	
 	Mounts.options.args.Repair.args = repairGuys;
-end
-
-function Mounts:GetMountList(mounttype)
-	local mountList = {};
-
-	local libMountsList = LibMounts:GetMountList(mounttype);
-	local extMountsList = LibMountsExt:GetMountList(mounttype);
-	
-	if (libMountsList ~= nil) then
-		for key,value in pairs(libMountsList) do
-			mountList[key] = value;
-		end
-	end
-	
-	if (extMountsList ~= nil) then
-		for key,value in pairs(extMountsList) do
-			mountList[key] = value;
-		end
-	end
-	
-	return mountList;
 end
 
 function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
@@ -284,18 +272,18 @@ function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
 		local spellid;
 		local disabled, message = false, nil;
 
-		local type = LibMountsExt:GetMountType(key)
+		local type = MMHelper:GetMountType(key)
 
-		if type == LibMountsExt.Types.SPELL then
+		if type == MMHelper.Types.SPELL then
 			local spellName = GetSpellInfo(key);
 			spellid = key;
 			name = spellName;
-		elseif type == LibMountsExt.Types.ITEM then
+		elseif type == MMHelper.Types.ITEM then
 			local itemName = GetItemInfo(key);
 			spellid = key;
 			name = itemName;
 		else
-			local mountId, creatureID, creatureName, creatureSpellID, icon, issummoned = LibMountsExt:GetMountInfo(key);
+			local mountId, creatureID, creatureName, creatureSpellID, icon, issummoned = MMHelper:GetMountInfo(key);
 			
 			name = creatureName
 			spellid = creatureSpellID
@@ -328,17 +316,17 @@ function Mounts:SetMountSummonState(info, value, spellid, mounttype)
 end
 
 function Mounts:AddMountAsSummonable(spellid, mounttype)
-	local hasOther, otherSpellID = LibMountsExt:HasOtherFactionEquivalent(spellid)
+	local hasOther, otherSpellID = MMHelper:HasOtherFactionEquivalent(spellid)
 
 	local tableToAddTo
 	
-	if mounttype == LibMounts.GROUND then
+	if mounttype == MMHelper.GROUND then
 		tableToAddTo = Mounts.db.profile.Ground
-	elseif mounttype == LibMounts.AIR then
+	elseif mounttype == MMHelper.AIR then
 		tableToAddTo = Mounts.db.profile.Flying
-	elseif mounttype == LibMounts.WATER then
+	elseif mounttype == MMHelper.WATER then
 		tableToAddTo = Mounts.db.profile.Swimming
-	elseif mounttype == LibMountsExt.REPAIR then
+	elseif mounttype == MMHelper.REPAIR then
 		tableToAddTo = Mounts.db.profile.Repair
 	end
 	
@@ -352,15 +340,15 @@ end
 function Mounts:RemoveMountAsSummonable(spellid, mounttype)
 	local tableToRemoveFrom
 	
-	local hasOther, otherSpellId = LibMountsExt:HasOtherFactionEquivalent(spellid)
+	local hasOther, otherSpellId = MMHelper:HasOtherFactionEquivalent(spellid)
 	
-	if mounttype == LibMounts.GROUND then
+	if mounttype == MMHelper.GROUND then
 		tableToRemoveFrom = Mounts.db.profile.Ground
-	elseif mounttype == LibMounts.AIR then
+	elseif mounttype == MMHelper.AIR then
 		tableToRemoveFrom = Mounts.db.profile.Flying
-	elseif mounttype == LibMounts.WATER then
+	elseif mounttype == MMHelper.WATER then
 		tableToRemoveFrom = Mounts.db.profile.Swimming
-	elseif mounttype == LibMountsExt.REPAIR then
+	elseif mounttype == MMHelper.REPAIR then
 		tableToRemoveFrom = Mounts.db.profile.Repair
 	end
 	
@@ -392,25 +380,25 @@ end
 
 function Mounts:GetMountSummonState(spellid, mounttype, info)
 
-	if mounttype == LibMounts.GROUND then
+	if mounttype == MMHelper.GROUND then
 		for key,value in pairs(Mounts.db.profile.Ground) do
 			if value == spellid then
 				return true;
 			end
 		end
-	elseif mounttype == LibMounts.AIR then
+	elseif mounttype == MMHelper.AIR then
 		for key,value in pairs(Mounts.db.profile.Flying) do
 			if value == spellid then
 				return true;
 			end
 		end
-	elseif mounttype == LibMounts.WATER then
+	elseif mounttype == MMHelper.WATER then
 		for key,value in pairs(Mounts.db.profile.Swimming) do
 			if value == spellid then
 				return true;
 			end
 		end
-	elseif mounttype == LibMountsExt.REPAIR then
+	elseif mounttype == MMHelper.REPAIR then
 		for key,value in pairs(Mounts.db.profile.Repair) do
 			if value == spellid then
 				return true;
@@ -423,9 +411,9 @@ end
 
 -- Helper functions
 function Mounts:GetRestrictions(spellid)
-	local summonable, profession, level = LibMounts:GetProfessionRestriction(spellid);
+	local summonable, profession, level = MMHelper:GetProfessionRestriction(spellid);
 	
-	local ground, air, water, speed, location, passengers = LibMounts:GetMountInfo(spellid);
+	local location = MMHelper:GetLocationRestriction(spellid);
 	
 	local disabled = false;
 	local message;
@@ -446,19 +434,19 @@ function Mounts:IsMountValidForPlayer(id)
 		return false;
 	end
 
-	local type = LibMountsExt:GetMountType(id)
+	local type = MMHelper:GetMountType(id)
 
-	if type == LibMountsExt.Types.ITEM then
+	if type == MMHelper.Types.ITEM then
 		local count = GetItemCount(id, true)
 		if count > 0 then
 			return true
 		else
 			return false
 		end
-	elseif type == LibMountsExt.Types.SPELL then
+	elseif type == MMHelper.Types.SPELL then
 		return IsSpellKnown(id)
 	else
-		local currentCanUse, restricted = LibMountsExt:IsMountClassRestricted(id)
+		local currentCanUse, restricted = MMHelper:IsMountClassRestricted(id)
 		
 		return currentCanUse
 	end
@@ -471,17 +459,17 @@ function Mounts:GetRandomMountID()
 
 	-- Make sure they can use a swimming mount at all (they may be < level 20)
 	if IsSwimming() and IsUsableSpell(64731) and #Mounts.db.profile.Swimming > 0 then
-		while not LibMountsExt:IsMountUsable(idToCall) or not LibMountsExt:IsMountClassRestricted(idToCall) do
+		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
 	elseif IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
-		while not LibMountsExt:IsMountUsable(idToCall) or not LibMountsExt:IsMountClassRestricted(idToCall) do
+		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
 	--Instead of checking riding skill, make sure they can use any ground mount, since all mounts scale with riding skill (they may be < level 20)
 	elseif #Mounts.db.profile.Ground > 0 and IsUsableSpell(101542) then
-		while not LibMountsExt:IsMountUsable(idToCall) or not LibMountsExt:IsMountClassRestricted(idToCall) do
+		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Ground[random(#Mounts.db.profile.Ground)];
 		end
 	end
@@ -505,7 +493,7 @@ function Mounts:Mount()
 	if not IsMounted() then
 		idToCall = Mounts:GetRandomMountID()
 
-		idToCall = LibMountsExt:GetMountInfo(idToCall);
+		idToCall = MMHelper:GetMountInfo(idToCall);
 		
 		CallCompanion("Mount", idToCall);
 	else
@@ -525,11 +513,11 @@ function Mounts:MountRepair()
 		return
 	end
 	
-	while not LibMountsExt:IsMountUsable(idToCall) and #Mounts.db.profile.Repair > 0 do
+	while not MMHelper:IsMountUsable(idToCall) and #Mounts.db.profile.Repair > 0 do
 		idToCall = Mounts.db.profile.Repair[random(#Mounts.db.profile.Repair)];
 	end
 	
-	idToCall = LibMountsExt:GetMountInfo(idToCall);
+	idToCall = MMHelper:GetMountInfo(idToCall);
 		
 	CallCompanion("Mount", idToCall);
 end
@@ -537,35 +525,34 @@ end
 function Mounts:CanMountNow()
 	if IsIndoors() or InCombatLockdown() then
 		-- If we are in combat, just try to call our first ground mount so we get the error message
-		CallCompanion("MOUNT", LibMountsExt:GetMountSummonID(Mounts.db.profile.Ground[1]))
+		CallCompanion("MOUNT", MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
 		return false
 	end
 	
 	return true
 end
 
---Helper for things that LibMounts does not have
-LibMountsExt = {
+MMHelper = {
 	REPAIR = {},
 	data = {},
 	Types = {},
+	Locations = {},
 }
 
-LibMountsExt.REPAIR = "repair"
+MMHelper.REPAIR = "repair"
 
-LibMountsExt.Types.ITEM = "item"
-LibMountsExt.Types.SPELL = "spell"
-LibMountsExt.Types.MOUNT = "mount"
+MMHelper.Types.ITEM = "item"
+MMHelper.Types.SPELL = "spell"
+MMHelper.Types.MOUNT = "mount"
 
-LibMountsExt.data[LibMounts.GROUND] = {
+MMHelper.GROUND = "ground";
+MMHelper.AIR = "air";
+MMHelper.WATER = "water";
 
-}
+MMHelper.Locations.Vashjir = "Vashj'ir";
+MMHelper.Locations.AQ = "Temple of Ahn'Qiraj";
 
-LibMountsExt.data[LibMounts.AIR] = {
-
-}
-
-LibMountsExt.data["paladin"] = {
+MMHelper.data["paladin"] = {
 	[34769] = true,
 	[13819] = true,
 	[66906] = true,
@@ -573,31 +560,31 @@ LibMountsExt.data["paladin"] = {
 	[34767] = true
 }
 
-LibMountsExt.data["warlock"] = {
+MMHelper.data["warlock"] = {
 	[5784] = true,
 	[23161] = true
 }
 
-LibMountsExt.data["deathknight"] = {
+MMHelper.data["deathknight"] = {
 	[48778] = true,
 	[54729] = true
 }
 
-LibMountsExt.data["vendorrepair"] = {
+MMHelper.data["vendorrepair"] = {
 	[61425] = true, -- Traveler's Tundra Mammoth (Alliance)
 	[61447] = true, -- Traveler's Tundra Mammoth (Horde)
 	[122708] = true -- Grand Expedition Yak
 }
 
-LibMountsExt.data["shapeshift"] = {
-	[33943] = LibMounts.AIR, 
-	[40120] = LibMounts.AIR,
-	[783] = LibMounts.GROUND,
-	[1066] = LibMounts.WATER
+MMHelper.data["shapeshift"] = {
+	[33943] = MMHelper.AIR, 
+	[40120] = MMHelper.AIR,
+	[783] = MMHelper.GROUND,
+	[1066] = MMHelper.WATER
 }
 
 --Key = Horde, Value = Alliance
-LibMountsExt.data["factionequivalent"] = {
+MMHelper.data["factionequivalent"] = {
 		[118737] = 130985, --Pandaren Kite
 		[61467] = 61465, -- Grand Black War Mammoth
 		[61469] = 61470, -- Grand Ice Mammoth
@@ -606,17 +593,33 @@ LibMountsExt.data["factionequivalent"] = {
 		[135416] = 135418
 }
 
-LibMountsExt.data["items"] = {
+MMHelper.data["items"] = {
 	    [71086] = {
-            LibMounts.AIR,
+            MMHelper.AIR,
         },
         [37011] = {
-            LibMounts.AIR,
-            LibMounts.GROUND,
+            MMHelper.AIR,
+            MMHelper.GROUND,
         }
 }
 
-function LibMountsExt:GetMountInfo(spellid)
+MMHelper.data["profession"] = {
+	[44151] = { 110403, 375 }, --Turbo-Charged Flying Machine
+	[44153] = { 110403, 300 }, --Flying Machine
+	[61451] = { 110426, 300 }, --Flying Carpet
+	[61309] = { 110426, 425 }, --Magnificent Flying Carpet
+	[75596] = { 110426, 425 }, --Frosty Flying Carpet
+}
+
+MMHelper.data["locaionRestricted"] = { --ground, air, water, speed, location, passangers
+	[26054] = MMHelper.Locations.AQ,
+	[25953] = MMHelper.Locations.AQ,
+	[26056] = MMHelper.Locations.AQ,
+	[26055] = MMHelper.Locations.AQ,
+	[75207] = MMHelper.Locations.Vashjir,--Abyssal Seahorse
+}
+
+function MMHelper:GetMountInfo(spellid)
 	local allMounts = GetNumCompanions("MOUNT");
 
 	for mountId = 1, allMounts do
@@ -629,20 +632,20 @@ function LibMountsExt:GetMountInfo(spellid)
 	end
 end
 
-function LibMountsExt:GetMountList(mounttype)
-	return LibMountsExt.data[mounttype];
+function MMHelper:GetMountList(mounttype)
+	return MMHelper.data[mounttype];
 end
 
-function LibMountsExt:GetSpecialMountList(mounttype)
+function MMHelper:GetSpecialMountList(mounttype)
 
 	local returnShifts = {};
-	for k,v in pairs(LibMountsExt.data["shapeshift"]) do
+	for k,v in pairs(MMHelper.data["shapeshift"]) do
 		if v == mounttype then
 			returnShifts[k] = true;
 		end
 	end
 	
-	for k,v in pairs(LibMountsExt.data["items"]) do
+	for k,v in pairs(MMHelper.data["items"]) do
 		for key, value in pairs(v) do
 			if value == mounttype then
 				returnShifts[k] = true;
@@ -653,19 +656,19 @@ function LibMountsExt:GetSpecialMountList(mounttype)
 	return returnShifts;
 end
 
-function LibMountsExt:GetMountType(id)
-	if LibMountsExt.data["shapeshift"][id] ~= nil then
-		return LibMountsExt.Types.SPELL
-	elseif LibMountsExt.data["items"][id] ~= nil then
-		return LibMountsExt.Types.ITEM
+function MMHelper:GetMountType(id)
+	if MMHelper.data["shapeshift"][id] ~= nil then
+		return MMHelper.Types.SPELL
+	elseif MMHelper.data["items"][id] ~= nil then
+		return MMHelper.Types.ITEM
 	else
-		return LibMountsExt.Types.MOUNT
+		return MMHelper.Types.MOUNT
 	end
 end
 
 --Returns true, and other faction id. And just false otherwise
-function LibMountsExt:HasOtherFactionEquivalent(id)
-	for h,a in pairs(LibMountsExt.data["factionequivalent"]) do
+function MMHelper:HasOtherFactionEquivalent(id)
+	for h,a in pairs(MMHelper.data["factionequivalent"]) do
 		if h == id then
 			return true, a
 		elseif a == id then
@@ -677,28 +680,28 @@ function LibMountsExt:HasOtherFactionEquivalent(id)
 end
 
 --Returns CanPlayerUse and HasClassRestrictions
-function LibMountsExt:IsMountClassRestricted(id)
+function MMHelper:IsMountClassRestricted(id)
 	if (id == nil) then
 		return false, false
 	end
 
 	local localizename, englishname = UnitClass("player");
 	
-	if LibMountsExt.data["paladin"][id] then
+	if MMHelper.data["paladin"][id] then
 		if englishname ~= 'PALADIN' then
 			return false, true;
 		else
 			return true, true
 		end
 	end
-	if LibMountsExt.data["warlock"][id] then
+	if MMHelper.data["warlock"][id] then
 		if englishname ~= 'WARLOCK' then
 			return false, true;
 		else
 			return true, true
 		end
 	end
-	if LibMountsExt.data["deathknight"][id] then
+	if MMHelper.data["deathknight"][id] then
 		if englishname ~= 'DEATHKNIGHT' then
 			return false, true;
 		else
@@ -709,28 +712,30 @@ function LibMountsExt:IsMountClassRestricted(id)
 	return true, false
 end
 
-function LibMountsExt:IsMountUsable(spellid)
+function MMHelper:IsMountUsable(spellid)
 	if spellid == nil then
 		return false;
 	end
 
-	local type = LibMountsExt:GetMountType(spellid)
+	local type = MMHelper:GetMountType(spellid)
 
-	if type == LibMountsExt.Types.ITEM then
-		return LibMountsExt:IsItemUsable(spellid)
-	elseif type == LibMountsExt.Types.SPELL then
+	if type == MMHelper.Types.ITEM then
+		return MMHelper:IsItemUsable(spellid)
+	elseif type == MMHelper.Types.SPELL then
 		return IsSpellKnown(spellid)
-	elseif type == LibMountsExt.Types.MOUNT then
+	elseif type == MMHelper.Types.MOUNT then
 	
-		if LibMountsExt:GetMountSummonID(spellid) == nil then
+		if MMHelper:GetMountSummonID(spellid) == nil then
 			return false
 		end
 	
-		local primary, secondary, thirdary = LibMounts:GetCurrentMountType();
-		local ground, air, water, speed, location, passengers = LibMounts:GetMountInfo(spellid);
+		local currentMapId = GetCurrentMapAreaID();
+		local location = MMHelper:GetLocationRestriction(spellid);
+		
+		local vashMapIds = {[610] = true,[613] = true,[614] = true,[615] = true}
 
-		if location == LibMounts.VASHJIR then
-			if primary == LibMounts.VASHJIR or secondary == LibMounts.VASHJIR then
+		if location == MMHelper.Locations.Vashjir then
+			if vashMapIds[currentMapId] then
 				return true;
 			else
 				return false;
@@ -740,7 +745,7 @@ function LibMountsExt:IsMountUsable(spellid)
 	return true;
 end
 
-function LibMountsExt:IsItemUsable(id)
+function MMHelper:IsItemUsable(id)
 	local count = GetItemCount(id)
 	if count > 0 then
 		if IsEquippableItem(id) and IsEquippedItem(id) then
@@ -755,7 +760,7 @@ function LibMountsExt:IsItemUsable(id)
 	end
 end
 
-function LibMountsExt:GetMountSummonID(spellid)
+function MMHelper:GetMountSummonID(spellid)
 	local allMounts = GetNumCompanions("MOUNT");
 
 	for mountId = 1, allMounts do
@@ -767,4 +772,31 @@ function LibMountsExt:GetMountSummonID(spellid)
 			return mountId;
 		end
 	end
+end
+
+function MMHelper:GetProfessionRestriction(id)
+	if MMHelper.data["profession"][id] then
+		local name = GetSpellInfo(MMHelper.data["profession"][id][1])
+		local level = MMHelper.data["profession"][id][2]
+		local userProf1, userProf2 = GetProfessions()
+		if userProf1 then
+			local name1, _, rank1 = GetProfessionInfo(userProf1)
+			if name == name1 then
+				return (rank1 >= level), name, level
+			end
+		end
+		if userProf2 then
+			local name2, _, rank2 = GetProfessionInfo(userProf2)
+			if name == name2 then
+				return (rank2 >= level), name, level
+			end
+		end
+		return false, name, level
+	else
+		return true
+	end
+end
+
+function MMHelper:GetLocationRestriction(id)
+	return MMHelper.data["locaionRestricted"][id];
 end

@@ -17,6 +17,3 @@ externals:
     libs/LibStub:
         url: svn://svn.wowace.com/wow/libstub/mainline/trunk
         tag: latest
-    libs/LibMounts-1.0:
-        url: svn://svn.wowace.com/wow/libmounts-1-0/mainline/trunk
-        tag: latest
