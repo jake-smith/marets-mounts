@@ -197,6 +197,10 @@ function Mounts:BuildMountOptions()
 	
 	local shapeshiftGround = MMHelper:GetSpecialMountList(MMHelper.GROUND);
 	
+	for key,value in pairs(shapeshiftGround) do
+		groundMounts[key] = value;
+	end
+	
 	local groundGuys = {};
 	
 	Mounts:MakeMountTable(groundMounts, groundGuys, MMHelper.GROUND);
@@ -600,6 +604,9 @@ MMHelper.data["items"] = {
         [37011] = {
             MMHelper.AIR,
             MMHelper.GROUND,
+        },
+        [101675] = {
+        	MMHelper.GROUND,
         }
 }
 
@@ -611,7 +618,7 @@ MMHelper.data["profession"] = {
 	[75596] = { 110426, 425 }, --Frosty Flying Carpet
 }
 
-MMHelper.data["locaionRestricted"] = { --ground, air, water, speed, location, passangers
+MMHelper.data["locationRestricted"] = { --ground, air, water, speed, location, passengers
 	[26054] = MMHelper.Locations.AQ,
 	[25953] = MMHelper.Locations.AQ,
 	[26056] = MMHelper.Locations.AQ,
@@ -798,5 +805,5 @@ function MMHelper:GetProfessionRestriction(id)
 end
 
 function MMHelper:GetLocationRestriction(id)
-	return MMHelper.data["locaionRestricted"][id];
+	return MMHelper.data["locationRestricted"][id];
 end
