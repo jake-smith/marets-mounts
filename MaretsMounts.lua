@@ -94,9 +94,9 @@ function MMMountButton:PreClick()
 		MMMountButton:SetAttribute("type", "item");
 		MMMountButton:SetAttribute("item", itemName);
 	else
-		local mountid, creatureID, creatureName, creatureSpellID, icon, issummoned = MMHelper:GetMountInfo(idToCall)
+		local spellName = GetSpellInfo(idToCall);
 		MMMountButton:SetAttribute("type", "spell");
-		MMMountButton:SetAttribute("spell", creatureName);
+		MMMountButton:SetAttribute("spell", spellName);
 	end
 end
 
