@@ -85,6 +85,7 @@ function MMMountButton:PreClick()
 	
 	local type = MMHelper:GetMountType(idToCall)
 	
+	--Set button attributes to make things happen (we use GetSpellInfo for mounts cuz Mount Names and Spell Names for summong a mount can be different)
 	if type == MMHelper.Types.SPELL then
 		local spellName = GetSpellInfo(idToCall);
 		MMMountButton:SetAttribute("type", "spell")
@@ -374,10 +375,6 @@ function Mounts:RemoveMountFromTable(mountTable, valueToRemove)
 	end
 	
 	if keyToRemove ~= nil then
-		--for index = keyToRemove, #mountTable-1 do
-			--mountTable[index] = mountTable[index+1];
-		--end
-	
 		table.remove(mountTable, keyToRemove);
 	end
 end
