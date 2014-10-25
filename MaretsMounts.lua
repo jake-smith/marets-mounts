@@ -65,9 +65,9 @@ end
 
 function MMMountButton:PreClick()
 	local idToCall = nil
-	
+
 	if IsMounted() then
-		Dismount()
+		C_MountJournal.Dismiss();
 		return
 	end
 	
@@ -85,7 +85,7 @@ function MMMountButton:PreClick()
 	
 	local type = MMHelper:GetMountType(idToCall)
 	
-	--Set button attributes to make things happen (we use GetSpellInfo for mounts cuz Mount Names and Spell Names for summong a mount can be different)
+	--Set button attributes to make things happen (we use GetSpellInfo for mounts cuz Mount Names and Spell Names for summoning a mount can be different)
 	if type == MMHelper.Types.SPELL then
 		local spellName = GetSpellInfo(idToCall);
 		MMMountButton:SetAttribute("type", "spell")
@@ -120,8 +120,7 @@ function MMRepairMountButton:PreClick()
 end
 
 -- Initialization
-
-function Mounts.OnInitialize()
+function Mounts:OnInitialize()
 	MountsDB = AceDB:New("MaretsMountsDB", defaults, true);
 	
 	MMMountButton:Initialize()
@@ -161,7 +160,6 @@ function Mounts:OnDisable()
 end
 
 --Options config
-
 function Mounts:OpenOptions()
 	InterfaceOptionsFrame_OpenToCategory(Mounts.optionsFrame)
 end
@@ -182,22 +180,27 @@ function Mounts:BuildMountOptions()
 	local vashjir = {};
 	
 	-- Use all mounts and create the mount list by their type
-	for id=1, GetNumCompanions("MOUNT"), 1 do
-		local creatureID, creatureName, creatureSpellID, icon, issummoned, mountTypeFlags = GetCompanionInfo("MOUNT", id)
+	local mountCount = C_MountJournal.GetNumMounts();
+	for id=1, mountCount, 1 do
+	
+		local creatureName, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(id);
+		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtra(id);
 		
-		if bit.band(mountTypeFlags, 0x11) == 0x11 then 
-			groundMounts[creatureSpellID] = true
-		end
-		if bit.band(mountTypeFlags, 0x02) == 0x02 then 
-			airMounts[creatureSpellID] = true
-		end
-		if bit.band(mountTypeFlags, 0x08) == 0x08 then 
-			waterMounts[creatureSpellID] = true
-		end
+    if not hideOnChar and isCollected then
+        if mountType == 230 or mountType == 269 or mountType == 247 or mountType == 241 then
+          groundMounts[spellID] = true;
+        end
+        if mountType == 248 or mountType == 247 then
+          airMounts[spellID] = true;
+        end
+        if mountType == 231 or mountType == 232 or mountType == 254 then
+          waterMounts[spellID] = true;
+        end
+    end
 	end
 	
 	local shapeshiftGround = MMHelper:GetSpecialMountList(MMHelper.GROUND);
-	
+
 	for key,value in pairs(shapeshiftGround) do
 		groundMounts[key] = value;
 	end
@@ -213,8 +216,6 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Ground.args = groundGuys;
 	
 	--Create air mounts for options table
-
-
 	local shapeshiftAir = MMHelper:GetSpecialMountList(MMHelper.AIR);
 
 	for key,value in pairs(shapeshiftAir) do
@@ -232,7 +233,6 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Air.args = airGuys;
 	
 	-- create water mounts for options table
-
 	for key,value in pairs(vashjir) do
 		waterMounts[key] = value;
 	end
@@ -270,7 +270,6 @@ function Mounts:BuildMountOptions()
 end
 
 function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
-	local allMounts = GetNumCompanions("MOUNT");
 
 	for key,value in pairs(mounts) do
 		local name;
@@ -288,7 +287,7 @@ function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
 			spellid = key;
 			name = itemName;
 		else
-			local mountId, creatureID, creatureName, creatureSpellID, icon, issummoned = MMHelper:GetMountInfo(key);
+			local mountId, creatureName, creatureSpellID, icon, issummoned = MMHelper:GetMountInfo(key);
 			
 			name = creatureName
 			spellid = creatureSpellID
@@ -483,7 +482,7 @@ function Mounts:Mount()
 	local idToCall = nil;
 
 	if IsMounted() then
-		Dismount()
+		C_MountJournal.Dismiss();
 		return
 	end
 
@@ -496,7 +495,7 @@ function Mounts:Mount()
 
 		idToCall = MMHelper:GetMountInfo(idToCall);
 		
-		CallCompanion("Mount", idToCall);
+		C_MountJournal.Summon(idToCall);
 	else
 		Dismount();
 	end
@@ -506,7 +505,7 @@ function Mounts:MountRepair()
 	local idToCall = nil;
 
 	if IsMounted() then
-		Dismount()
+		C_MountJournal.Dismiss();
 		return
 	end
 
@@ -520,13 +519,13 @@ function Mounts:MountRepair()
 	
 	idToCall = MMHelper:GetMountInfo(idToCall);
 		
-	CallCompanion("Mount", idToCall);
+	C_MountJournal.Summon(idToCall);
 end
 
 function Mounts:CanMountNow()
 	if IsIndoors() or InCombatLockdown() then
 		-- If we are in combat, just try to call our first ground mount so we get the error message
-		CallCompanion("MOUNT", MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
+		C_MountJournal.Summon(MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
 		return false
 	end
 	
@@ -578,10 +577,9 @@ MMHelper.data["vendorrepair"] = {
 }
 
 MMHelper.data["shapeshift"] = {
-	[33943] = MMHelper.AIR, 
-	[40120] = MMHelper.AIR,
-	[783] = MMHelper.GROUND,
-	[1066] = MMHelper.WATER
+  [783] = { MMHelper.AIR,
+    MMHelper.GROUND,
+    MMHelper.WATER},
 }
 
 --Key = Horde, Value = Alliance
@@ -613,9 +611,11 @@ MMHelper.data["profession"] = {
 	[61451] = { 110426, 300 }, --Flying Carpet
 	[61309] = { 110426, 425 }, --Magnificent Flying Carpet
 	[75596] = { 110426, 425 }, --Frosty Flying Carpet
+	[169952] = { 110426, 300 }, --Creeping Carpet
+	[171844] = { 110423, 300 }, --Dustmane Direwolf
 }
 
-MMHelper.data["locationRestricted"] = { --ground, air, water, speed, location, passengers
+MMHelper.data["locationRestricted"] = {
 	[26054] = MMHelper.Locations.AQ,
 	[25953] = MMHelper.Locations.AQ,
 	[26056] = MMHelper.Locations.AQ,
@@ -624,14 +624,14 @@ MMHelper.data["locationRestricted"] = { --ground, air, water, speed, location, p
 }
 
 function MMHelper:GetMountInfo(spellid)
-	local allMounts = GetNumCompanions("MOUNT");
+	local allMounts = C_MountJournal.GetNumMounts();
 
 	for mountId = 1, allMounts do
-		local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", mountId);
-		if creatureID == nil then
+		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(mountId);
+		if creatureName == nil then
 				--continue
-		elseif creatureSpellID == spellid then
-			return mountId, creatureID, creatureName, creatureSpellID, icon, issummoned;
+		elseif mountSpellID == spellid then
+			return mountId, creatureName, mountSpellID, icon, active;
 		end
 	end
 end
@@ -644,9 +644,11 @@ function MMHelper:GetSpecialMountList(mounttype)
 
 	local returnShifts = {};
 	for k,v in pairs(MMHelper.data["shapeshift"]) do
-		if v == mounttype then
-			returnShifts[k] = true;
-		end
+    for key,value in pairs(v) do
+      if value == mounttype then
+        returnShifts[k] = true;
+      end
+    end
 	end
 	
 	for k,v in pairs(MMHelper.data["items"]) do
@@ -728,23 +730,17 @@ function MMHelper:IsMountUsable(spellid)
 	elseif type == MMHelper.Types.SPELL then
 		return IsSpellKnown(spellid)
 	elseif type == MMHelper.Types.MOUNT then
-	
-		if MMHelper:GetMountSummonID(spellid) == nil then
-			return false
-		end
-	
-		local currentMapId = GetCurrentMapAreaID();
-		local location = MMHelper:GetLocationRestriction(spellid);
-		
-		local vashMapIds = {[610] = true,[613] = true,[614] = true,[615] = true}
+	 local allMounts = C_MountJournal.GetNumMounts();
 
-		if location == MMHelper.Locations.Vashjir then
-			if vashMapIds[currentMapId] then
-				return true;
-			else
-				return false;
-			end
-		end
+    for mountId = 1, allMounts do
+      local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(mountId);
+
+      if creatureName == nil then
+      --continue
+      elseif mountSpellID == spellid then
+        return isUsable;
+      end
+    end
 	end
 	return true;
 end
@@ -765,14 +761,14 @@ function MMHelper:IsItemUsable(id)
 end
 
 function MMHelper:GetMountSummonID(spellid)
-	local allMounts = GetNumCompanions("MOUNT");
+	local allMounts = C_MountJournal.GetNumMounts();
 
 	for mountId = 1, allMounts do
-		local creatureID, creatureName, creatureSpellID, icon, issummoned = GetCompanionInfo("MOUNT", mountId);
+		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(mountId);
 
-		if creatureID == nil then
+		if creatureName == nil then
 				--continue
-		elseif creatureSpellID == spellid then
+		elseif mountSpellID == spellid then
 			return mountId;
 		end
 	end
