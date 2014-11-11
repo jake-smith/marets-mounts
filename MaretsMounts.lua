@@ -5,6 +5,7 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local AceDB = LibStub("AceDB-3.0")
 local AceConfig = LibStub("AceConfig-3.0")
+local AceDBOptions = LibStub("AceDBOptions-3.0")
 
 local MountsDB
 
@@ -136,7 +137,10 @@ end
 function Mounts:OnEnable()
 	Mounts:BuildMountOptions();
 	
-	AceConfig:RegisterOptionsTable("MaretsMounts", options);
+	Mounts.options.args.profiles = AceDBOptions:GetOptionsTable(Mounts.db)
+	Mounts.options.args.profiles.order = -1
+	
+	AceConfig:RegisterOptionsTable("MaretsMounts", Mounts.options);
 	Mounts.optionsFrame = AceConfigDialog.AddToBlizOptions("MaretsMounts", "MaretsMounts")
 	
 	Mounts.optionsFrame:RegisterEvent("COMPANION_LEARNED")
