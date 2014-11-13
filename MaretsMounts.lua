@@ -465,7 +465,7 @@ function Mounts:GetRandomMountID()
 	local idToCall = nil
 
   local location = GetCurrentMapContinent()
-print(location)
+
 	-- Make sure they can use a swimming mount at all (they may be < level 20)
 	if IsSwimming() and IsUsableSpell(64731) and #Mounts.db.profile.Swimming > 0 then
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
