@@ -465,14 +465,14 @@ function Mounts:GetRandomMountID()
 	local idToCall = nil
 
   local location = GetCurrentMapContinent()
-
+print(location)
 	-- Make sure they can use a swimming mount at all (they may be < level 20)
 	if IsSwimming() and IsUsableSpell(64731) and #Mounts.db.profile.Swimming > 0 then
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
-	elseif not location == 7 and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
+	elseif location ~= 7 and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
