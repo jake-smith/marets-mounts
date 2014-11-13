@@ -463,7 +463,7 @@ end
 
 function Mounts:GetRandomMountID()
 	local idToCall = nil
-print(IsFlyableArea())
+
   local location = GetCurrentMapContinent()
 
 	-- Make sure they can use a swimming mount at all (they may be < level 20)
