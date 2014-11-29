@@ -481,6 +481,7 @@ local draenorMapIds = {
 function Mounts:GetRandomMountID()
 	local idToCall = nil
 
+  --save the selected map id so we can go back to it
   local currentMap = GetCurrentMapAreaID()
   SetMapToCurrentZone()
   local currentLocation = GetCurrentMapAreaID()
