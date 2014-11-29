@@ -461,18 +461,38 @@ function Mounts:IsMountValidForPlayer(id)
 	return true;
 end
 
+local draenorMapIds = {
+[962] = true, --Draenor
+[978] = true, --Ashran
+[941] = true, --Frostfire Ridge
+[976] = true, --Frostwall
+[949] = true, --Gorgrond
+[971] = true, --Lunarfall
+[950] = true, --Nagrand
+[947] = true, --Shadowmoon Valley
+[948] = true, --Spires of Arak
+[1009] = true, -- Stormshield
+[946] = true, --Talador
+[945] = true, --Tanaan Jungle
+[970] = true, --Tanaan Jungle - Assault on the Dark Portal
+[1011] = true --Warspear
+}
+
 function Mounts:GetRandomMountID()
 	local idToCall = nil
 
-  local location = GetCurrentMapContinent()
-
+  local currentMap = GetCurrentMapAreaID()
+  SetMapToCurrentZone()
+  local currentLocation = GetCurrentMapAreaID()
+  SetMapByID(currentMap)
+  
 	-- Make sure they can use a swimming mount at all (they may be < level 20)
 	if IsSwimming() and IsUsableSpell(64731) and #Mounts.db.profile.Swimming > 0 then
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
-	elseif location ~= 7 and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
+	elseif not draenorMapIds[currentLocation] and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
