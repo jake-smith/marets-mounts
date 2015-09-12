@@ -478,14 +478,28 @@ local draenorMapIds = {
 [1011] = true --Warspear
 }
 
-function Mounts:GetRandomMountID()
-	local idToCall = nil
-
+---
+-- Check if the the location is in draenor and if the character has draenor flying
+---
+function Mounts:DraenorFlying()
   --save the selected map id so we can go back to it
   local currentMap = GetCurrentMapAreaID()
   SetMapToCurrentZone()
   local currentLocation = GetCurrentMapAreaID()
   SetMapByID(currentMap)
+
+  --if we are in draenor but not in the special assault on the dark portal instance of tanaan
+  if draenorMapIds[currentLocation] and currentLocation ~= 970 then
+      local id, name, points, completed, month, day, year, description, flags, icon, rewardText, isGuildAch, wasEarnedByMe, earnedBy  = GetAchievementInfo(10018);
+      
+      return completed;
+  end
+  
+  return false;
+end
+
+function Mounts:GetRandomMountID()
+	local idToCall = nil
   
 	-- Make sure they can use a swimming mount at all (they may be < level 20)
 	if IsSwimming() and IsUsableSpell(64731) and #Mounts.db.profile.Swimming > 0 then
@@ -493,7 +507,7 @@ function Mounts:GetRandomMountID()
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
-	elseif not draenorMapIds[currentLocation] and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
+	elseif Mounts:DraenorFlying() and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
