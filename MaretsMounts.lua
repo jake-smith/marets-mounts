@@ -507,7 +507,7 @@ function Mounts:GetRandomMountID()
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
-	elseif Mounts:DraenorFlying() and IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
+	elseif Mounts:DraenorFlying() or (IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0) then 
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
