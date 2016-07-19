@@ -190,8 +190,8 @@ function Mounts:BuildMountOptions()
 	local mountCount = C_MountJournal.GetNumMounts();
 	for id=1, mountCount, 1 do
 	
-		local creatureName, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(id);
-		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtra(id);
+		local creatureName, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(id);
+		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtraByID(id);
 		
     if not hideOnChar and isCollected then
         if mountType == 230 or mountType == 269 or mountType == 247 or mountType == 241 then
@@ -517,7 +517,6 @@ function Mounts:GetRandomMountID()
 			idToCall = Mounts.db.profile.Ground[random(#Mounts.db.profile.Ground)];
 		end
 	end
-	
 	return idToCall
 end
 
@@ -539,7 +538,7 @@ function Mounts:Mount()
 
 		idToCall = MMHelper:GetMountInfo(idToCall);
 		
-		C_MountJournal.Summon(idToCall);
+		C_MountJournal.SummonByID(idToCall);
 	else
 		Dismount();
 	end
@@ -563,13 +562,13 @@ function Mounts:MountRepair()
 	
 	idToCall = MMHelper:GetMountInfo(idToCall);
 		
-	C_MountJournal.Summon(idToCall);
+	C_MountJournal.SummonByID(idToCall);
 end
 
 function Mounts:CanMountNow()
 	if IsIndoors() or InCombatLockdown() then
 		-- If we are in combat, just try to call our first ground mount so we get the error message
-		C_MountJournal.Summon(MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
+		C_MountJournal.SummonByID(MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
 		return false
 	end
 	
@@ -671,7 +670,7 @@ function MMHelper:GetMountInfo(spellid)
 	local allMounts = C_MountJournal.GetNumMounts();
 
 	for mountId = 1, allMounts do
-		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(mountId);
+		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
 		if creatureName == nil then
 				--continue
 		elseif mountSpellID == spellid then
@@ -777,7 +776,7 @@ function MMHelper:IsMountUsable(spellid)
 	 local allMounts = C_MountJournal.GetNumMounts();
 
     for mountId = 1, allMounts do
-      local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(mountId);
+      local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
 
       if creatureName == nil then
       --continue
@@ -808,7 +807,7 @@ function MMHelper:GetMountSummonID(spellid)
 	local allMounts = C_MountJournal.GetNumMounts();
 
 	for mountId = 1, allMounts do
-		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfo(mountId);
+		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
 
 		if creatureName == nil then
 				--continue
