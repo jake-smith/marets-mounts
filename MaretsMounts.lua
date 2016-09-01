@@ -248,8 +248,6 @@ function Mounts:UpdateMountOptions(self, event)
 end
 
 function Mounts:BuildMountOptions()
-
-	--Mounts.options.args = {}
 	
 	-- Create ground mounts for options table
 	local groundMounts = {};
@@ -595,8 +593,6 @@ function Mounts:DraenorFlying()
   SetMapToCurrentZone()
   local currentLocation = GetCurrentMapAreaID()
   SetMapByID(currentMap)
-  
-  print(currentLocation)
 
   --if we are in draenor but not in the special assault on the dark portal instance of tanaan
   if draenorPathfinderMapIds[currentLocation] and currentLocation ~= 970 then
