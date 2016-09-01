@@ -18,6 +18,7 @@ local defaults = {
 		Flying = {},
 		Swimming = {},
 		Repair = {},
+		Waterwalking = {}
 	}
 }
 
@@ -26,7 +27,50 @@ local options = {
 	handler = Mounts,
     type = 'group',
     childGroups = "tab",
-    args = {}	
+    args = {
+		info = {
+			name = "Info",
+			type = "group",
+			order = 0,
+			args = {
+				header = {
+					name = "Maret's Mounts",
+					type = "header",
+					order = 0,
+				},
+				macro = {
+					name = "Use the macro named \"Mount Your Face\" to summon.",
+					type = "description",
+					fontSize = "medium",
+					order = 1,
+				},
+				space = {
+					name = "",
+					type = "description",
+					fontSize = "medium",
+					order = 2,
+				},
+				howToSummonNormal = {
+					name = "Summon Normal Mount: Left Click",
+					type = "description",
+					fontSize = "medium",
+					order = 3,
+				},
+				howToSummonRepair = {
+					name = "Summon Repair Mount: Right Click",
+					type = "description",
+					fontSize = "medium",
+					order = 4,
+				},
+				howToSummonWaterwalking = {
+					name = "Summon Waterwalking Mount: Shift-Left Click",
+					type = "description",
+					fontSize = "medium",
+					order = 5,
+				},
+			}
+		}
+	}	
 }
 
 local options_slashcmd = {
@@ -55,6 +99,13 @@ local options_slashcmd = {
             desc = "Summon a random repair mount",
             order = 3,
             func = function(info) Mounts:MountRepair() end
+        },
+		ww = {
+            type = "execute",
+            name = "Summon Waterwalking Mount",
+            desc = "Summon a random waterwalking mount",
+            order = 3,
+            func = function(info) Mounts:MountWaterwalking() end
         }
     },
 }
@@ -62,6 +113,7 @@ local options_slashcmd = {
 -- Buttons
 MMMountButton = CreateFrame("Button", "MaretsMountsNormal", UIParent, "SecureActionButtonTemplate");
 MMRepairMountButton = CreateFrame("Button", "MaretsMountsRepair", UIParent, "SecureActionButtonTemplate");
+MMWaterwalkingMountButton = CreateFrame("Button", "MaretsMountsWaterwalking", UIParent, "SecureActionButtonTemplate");
 
 function MMMountButton:Initialize()
 	MMMountButton:SetScript("PreClick", function(s,m,d) MMMountButton:PreClick() end)
@@ -123,12 +175,31 @@ function MMRepairMountButton:PreClick()
 	MMRepairMountButton:SetAttribute("macrotext", "/mountyourface repair");
 end
 
+function MMWaterwalkingMountButton:Initialize()
+	MMWaterwalkingMountButton:SetScript("PreClick", function(s,m,d) MMWaterwalkingMountButton:PreClick() end)
+end
+
+function MMWaterwalkingMountButton:PreClick()
+	if IsMounted() then
+		Dismount()
+		return
+	end
+
+	if not Mounts:CanMountNow() then
+		return
+	end
+	
+	MMWaterwalkingMountButton:SetAttribute("type", "macro");
+	MMWaterwalkingMountButton:SetAttribute("macrotext", "/mountyourface ww");
+end
+
 -- Initialization
 function Mounts:OnInitialize()
 	MountsDB = AceDB:New("MaretsMountsDB", defaults, true);
 	
 	MMMountButton:Initialize()
 	MMRepairMountButton:Initialize()
+	MMWaterwalkingMountButton:Initialize()
 
 	Mounts.db = MountsDB;
 	Mounts.options = options;
@@ -154,9 +225,9 @@ function Mounts:OnEnable()
 	local index = GetMacroIndexByName("Mount Your Face");
 	
 	if index == 0 then
-		CreateMacro("Mount Your Face", "ability_mount_drake_proto", "/click [btn:2] MaretsMountsRepair; MaretsMountsNormal", nil);
+		CreateMacro("Mount Your Face", "ability_mount_drake_proto", "/click [mod:shift] MaretsMountsWaterwalking; [btn:2] MaretsMountsRepair; MaretsMountsNormal", nil);
 	else
-		EditMacro(index, "Mount Your Face", "ability_mount_drake_proto", "/click [btn:2] MaretsMountsRepair; MaretsMountsNormal");
+		EditMacro(index, "Mount Your Face", "ability_mount_drake_proto", "/click [mod:shift] MaretsMountsWaterwalking; [btn:2] MaretsMountsRepair; MaretsMountsNormal");
 	end
 end
 
@@ -178,32 +249,37 @@ end
 
 function Mounts:BuildMountOptions()
 
-	Mounts.options.args = {}
+	--Mounts.options.args = {}
 	
 	-- Create ground mounts for options table
 	local groundMounts = {};
 	local airMounts = {};
 	local waterMounts = {};
 	local vashjir = {};
+	local waterwalkingMounts = {};
 	
 	-- Use all mounts and create the mount list by their type
-	local mountCount = C_MountJournal.GetNumMounts();
-	for id=1, mountCount, 1 do
+	local allMounts = C_MountJournal.GetMountIDs()
 	
-		local creatureName, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(id);
-		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtraByID(id);
-		
-    if not hideOnChar and isCollected then
-        if mountType == 230 or mountType == 269 or mountType == 247 or mountType == 241 then
-          groundMounts[spellID] = true;
-        end
-        if mountType == 248 or mountType == 247 then
-          airMounts[spellID] = true;
-        end
-        if mountType == 231 or mountType == 232 or mountType == 254 then
-          waterMounts[spellID] = true;
-        end
-    end
+	for index,mountId in pairs(allMounts) do
+	
+		local creatureName, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
+		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtraByID(mountId);
+
+		if not hideOnChar and isCollected then
+			if mountType == 230 or mountType == 269 or mountType == 247 or mountType == 241 then
+				groundMounts[spellID] = true;
+			end
+			if mountType == 248 or mountType == 247 then
+				airMounts[spellID] = true;
+			end
+			if mountType == 231 or mountType == 232 or mountType == 254 then
+				waterMounts[spellID] = true;
+			end
+			if mountType == 269 then
+				waterwalkingMounts[spellID] = true;
+			end
+		end
 	end
 	
 	local shapeshiftGround = MMHelper:GetSpecialMountList(MMHelper.GROUND);
@@ -274,6 +350,17 @@ function Mounts:BuildMountOptions()
 	Mounts.options.args.Repair['name'] = 'Repair/Vendor';
 	
 	Mounts.options.args.Repair.args = repairGuys;
+	
+	-- create water walking mounts for options table
+	local waterwalkGuys = {};
+	
+	Mounts:MakeMountTable(waterwalkingMounts, waterwalkGuys, MMHelper.WATERWALKING);
+	
+	Mounts.options.args['Waterwalking'] = {};
+	Mounts.options.args.Waterwalking['type'] = 'group';
+	Mounts.options.args.Waterwalking['name'] = 'Waterwalking';
+	
+	Mounts.options.args.Waterwalking.args = waterwalkGuys;
 end
 
 function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
@@ -339,6 +426,8 @@ function Mounts:AddMountAsSummonable(spellid, mounttype)
 		tableToAddTo = Mounts.db.profile.Swimming
 	elseif mounttype == MMHelper.REPAIR then
 		tableToAddTo = Mounts.db.profile.Repair
+	elseif mounttype == MMHelper.WATERWALKING then
+		tableToAddTo = Mounts.db.profile.Waterwalking
 	end
 	
 	tableToAddTo[#tableToAddTo+1] = spellid;
@@ -361,6 +450,8 @@ function Mounts:RemoveMountAsSummonable(spellid, mounttype)
 		tableToRemoveFrom = Mounts.db.profile.Swimming
 	elseif mounttype == MMHelper.REPAIR then
 		tableToRemoveFrom = Mounts.db.profile.Repair
+	elseif mounttype == MMHelper.WATERWALKING then
+		tableToRemoveFrom = Mounts.db.profile.Waterwalking
 	end
 	
 	Mounts:RemoveMountFromTable(tableToRemoveFrom, spellid);
@@ -407,6 +498,12 @@ function Mounts:GetMountSummonState(spellid, mounttype, info)
 		end
 	elseif mounttype == MMHelper.REPAIR then
 		for key,value in pairs(Mounts.db.profile.Repair) do
+			if value == spellid then
+				return true;
+			end
+		end
+	elseif mounttype == MMHelper.WATERWALKING then
+		for key,value in pairs(Mounts.db.profile.Waterwalking) do
 			if value == spellid then
 				return true;
 			end
@@ -461,7 +558,7 @@ function Mounts:IsMountValidForPlayer(id)
 	return true;
 end
 
-local draenorMapIds = {
+local draenorPathfinderMapIds = {
 [962] = true, --Draenor
 [978] = true, --Ashran
 [941] = true, --Frostfire Ridge
@@ -474,8 +571,19 @@ local draenorMapIds = {
 [1009] = true, --Stormshield
 [946] = true, --Talador
 [945] = true, --Tanaan Jungle
-[970] = true, --Tanaan Jungle - Assault on the Dark Portal
+[970] = false, --Tanaan Jungle - Assault on the Dark Portal
 [1011] = true --Warspear
+}
+
+local legionPathfinderMapIds = {
+[1033] = true, --Suramar
+[1015] = true, --Azsuna
+[1024] = true, --Highmountain
+[1080] = false, --Thunder Totem
+[1018] = true, --Val'sharah
+[1017] = true, --Stormheim
+[1022] = false, --Helheim
+[1014] = false --Broken Isles Dalaran
 }
 
 ---
@@ -487,15 +595,31 @@ function Mounts:DraenorFlying()
   SetMapToCurrentZone()
   local currentLocation = GetCurrentMapAreaID()
   SetMapByID(currentMap)
+  
+  print(currentLocation)
 
   --if we are in draenor but not in the special assault on the dark portal instance of tanaan
-  if draenorMapIds[currentLocation] and currentLocation ~= 970 then
+  if draenorPathfinderMapIds[currentLocation] and currentLocation ~= 970 then
       local id, name, points, completed, month, day, year, description, flags, icon, rewardText, isGuildAch, wasEarnedByMe, earnedBy  = GetAchievementInfo(10018);
       
       return completed;
   end
   
   return false;
+end
+
+function Mounts:BrokenIslesPathfinder()
+  --save the selected map id so we can go back to it
+  local currentMap = GetCurrentMapAreaID()
+  SetMapToCurrentZone()
+  local currentLocation = GetCurrentMapAreaID()
+  SetMapByID(currentMap)
+  
+  -- not pathfinder yet, so all ground
+  -- TODO: Need to figure out a better way now that there are multiple pathfinders, and areas inside the legion zones that will still be only ground, stupid helheim and it being flying
+  if legionPathfinderMapIds[currentLocation] then
+	return false
+  end
 end
 
 function Mounts:GetRandomMountID()
@@ -507,7 +631,7 @@ function Mounts:GetRandomMountID()
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
-	elseif Mounts:DraenorFlying() or (IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0) then 
+	elseif Mounts:DraenorFlying() or Mounts:BrokenIslesPathfinder() or (IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0) then 
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
@@ -565,6 +689,27 @@ function Mounts:MountRepair()
 	C_MountJournal.SummonByID(idToCall);
 end
 
+function Mounts:MountWaterwalking()
+	local idToCall = nil;
+
+	if IsMounted() then
+		C_MountJournal.Dismiss();
+		return
+	end
+
+	if not Mounts:CanMountNow() then
+		return
+	end
+	
+	while not MMHelper:IsMountUsable(idToCall) and #Mounts.db.profile.Waterwalking > 0 do
+		idToCall = Mounts.db.profile.Waterwalking[random(#Mounts.db.profile.Waterwalking)];
+	end
+	
+	idToCall = MMHelper:GetMountInfo(idToCall);
+		
+	C_MountJournal.SummonByID(idToCall);
+end
+
 function Mounts:CanMountNow()
 	if IsIndoors() or InCombatLockdown() then
 		-- If we are in combat, just try to call our first ground mount so we get the error message
@@ -591,6 +736,7 @@ MMHelper.Types.MOUNT = "mount"
 MMHelper.GROUND = "ground";
 MMHelper.AIR = "air";
 MMHelper.WATER = "water";
+MMHelper.WATERWALKING = "waterwalking";
 
 MMHelper.Locations.Vashjir = "Vashj'ir";
 MMHelper.Locations.AQ = "Temple of Ahn'Qiraj";
@@ -648,6 +794,11 @@ MMHelper.data["items"] = {
         }
 }
 
+MMHelper.data["waterwalking"] = {
+	[118089] = true, --Azure Water Strider
+	[127271] = true -- Crimson Water Strider
+}
+
 MMHelper.data["profession"] = {
 	[44151] = { 110403, 375 }, --Turbo-Charged Flying Machine
 	[44153] = { 110403, 300 }, --Flying Machine
@@ -667,12 +818,14 @@ MMHelper.data["locationRestricted"] = {
 }
 
 function MMHelper:GetMountInfo(spellid)
-	local allMounts = C_MountJournal.GetNumMounts();
-
-	for mountId = 1, allMounts do
+	local allMounts = C_MountJournal.GetMountIDs()
+	
+	for index,mountId in pairs(allMounts) do
 		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
+		
 		if creatureName == nil then
-				--continue
+				--continue		
+		
 		elseif mountSpellID == spellid then
 			return mountId, creatureName, mountSpellID, icon, active;
 		end
@@ -706,6 +859,16 @@ function MMHelper:GetSpecialMountList(mounttype)
 end
 
 function MMHelper:GetMountType(id)
+
+	local allMounts = C_MountJournal.GetMountIDs()
+	
+	for index,mountId in pairs(allMounts) do
+		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
+		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtraByID(mountId);
+		
+		
+	end
+
 	if MMHelper.data["shapeshift"][id] ~= nil then
 		return MMHelper.Types.SPELL
 	elseif MMHelper.data["items"][id] ~= nil then
@@ -773,17 +936,17 @@ function MMHelper:IsMountUsable(spellid)
 	elseif type == MMHelper.Types.SPELL then
 		return IsSpellKnown(spellid)
 	elseif type == MMHelper.Types.MOUNT then
-	 local allMounts = C_MountJournal.GetNumMounts();
+		local allMounts = C_MountJournal.GetMountIDs()
+	
+		for index,mountId in pairs(allMounts) do
+			local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
 
-    for mountId = 1, allMounts do
-      local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
-
-      if creatureName == nil then
-      --continue
-      elseif mountSpellID == spellid then
-        return isUsable;
-      end
-    end
+			if creatureName == nil then
+			--continue
+			elseif mountSpellID == spellid then
+				return isUsable;
+			end
+		end
 	end
 	return true;
 end
@@ -804,11 +967,12 @@ function MMHelper:IsItemUsable(id)
 end
 
 function MMHelper:GetMountSummonID(spellid)
-	local allMounts = C_MountJournal.GetNumMounts();
-
-	for mountId = 1, allMounts do
+	local allMounts = C_MountJournal.GetMountIDs()
+	
+	for index,mountId in pairs(allMounts) do
 		local creatureName, mountSpellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, hideOnChar, isCollected = C_MountJournal.GetMountInfoByID(mountId);
 
+		
 		if creatureName == nil then
 				--continue
 		elseif mountSpellID == spellid then
