@@ -14,5 +14,7 @@ Works with Dragonwrath, Tarecgosa's Rest, and items like Magic Broom and Shimmer
 A macro is created named "Mount Your Face". Drag it from /macro to the action bars.
 
 To summon a location dependent normal mount (ground, flying, swimming): Left click
-To summon a waterwaslking mount: Shift-Left click
+
+To summon a waterwalking mount: Shift-Left click
+
 To summon a repair mount: Right click
