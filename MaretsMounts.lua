@@ -556,7 +556,7 @@ function Mounts:IsMountValidForPlayer(id)
 	return true;
 end
 
-local draenorPathfinderMapIds = {
+local draenorMapZoneIds = {
 [962] = true, --Draenor
 [978] = true, --Ashran
 [941] = true, --Frostfire Ridge
@@ -569,19 +569,19 @@ local draenorPathfinderMapIds = {
 [1009] = true, --Stormshield
 [946] = true, --Talador
 [945] = true, --Tanaan Jungle
-[970] = false, --Tanaan Jungle - Assault on the Dark Portal
+[970] = true, --Tanaan Jungle - Assault on the Dark Portal
 [1011] = true --Warspear
 }
 
-local legionPathfinderMapIds = {
+local legionMapZoneIds = {
 [1033] = true, --Suramar
 [1015] = true, --Azsuna
 [1024] = true, --Highmountain
-[1080] = false, --Thunder Totem
+[1080] = true, --Thunder Totem
 [1018] = true, --Val'sharah
 [1017] = true, --Stormheim
-[1022] = false, --Helheim
-[1014] = false --Broken Isles Dalaran
+[1022] = true, --Helheim
+[1014] = true --Broken Isles Dalaran
 }
 
 ---
@@ -595,7 +595,7 @@ function Mounts:DraenorFlying()
   SetMapByID(currentMap)
 
   --if we are in draenor but not in the special assault on the dark portal instance of tanaan
-  if draenorPathfinderMapIds[currentLocation] and currentLocation ~= 970 then
+  if draenorMapZoneIds[currentLocation] and currentLocation ~= 970 then
       local id, name, points, completed, month, day, year, description, flags, icon, rewardText, isGuildAch, wasEarnedByMe, earnedBy  = GetAchievementInfo(10018);
       
       return completed;
@@ -613,9 +613,35 @@ function Mounts:BrokenIslesPathfinder()
   
   -- not pathfinder yet, so all ground
   -- TODO: Need to figure out a better way now that there are multiple pathfinders, and areas inside the legion zones that will still be only ground, stupid helheim and it being flying
-  if legionPathfinderMapIds[currentLocation] then
+  if legionMapZoneIds[currentLocation] then
 	return false
   end
+end
+
+function Mounts:CanFlyInZone()
+	local currentMap = GetCurrentMapAreaID()
+	SetMapToCurrentZone()
+	local currentLocation = GetCurrentMapAreaID()
+	SetMapByID(currentMap)
+
+  --if we are in draenor
+	if draenorMapZoneIds[currentLocation] then
+		--attack on the dark portal does not have flying
+		if currentLocation == 970 then
+			return false
+		end
+	
+		local id, name, points, completed, month, day, year, description, flags, icon, rewardText, isGuildAch, wasEarnedByMe, earnedBy  = GetAchievementInfo(10018);
+      
+		return completed;
+	end
+  
+  -- not pathfinder yet, so all ground
+	if legionMapZoneIds[currentLocation] then
+		return false
+	end
+  
+	return IsFlyableArea()
 end
 
 function Mounts:GetRandomMountID()
@@ -627,7 +653,7 @@ function Mounts:GetRandomMountID()
 			idToCall = Mounts.db.profile.Swimming[random(#Mounts.db.profile.Swimming)];
 		end
 	--Instead of checking for flying skill, just check if a flyable mount can be used to handle not having the proper riding skill
-	elseif Mounts:DraenorFlying() or Mounts:BrokenIslesPathfinder() or (IsFlyableArea() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0) then 
+	elseif Mounts:CanFlyInZone() and IsUsableSpell(88718) and #Mounts.db.profile.Flying > 0 then 
 		while not MMHelper:IsMountUsable(idToCall) or not MMHelper:IsMountClassRestricted(idToCall) do
 			idToCall = Mounts.db.profile.Flying[random(#Mounts.db.profile.Flying)];
 		end
