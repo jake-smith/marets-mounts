@@ -581,7 +581,9 @@ local legionMapZoneIds = {
 [1018] = true, --Val'sharah
 [1017] = true, --Stormheim
 [1022] = true, --Helheim
-[1014] = true --Broken Isles Dalaran
+[1035] = true, -- Skyhold
+[1014] = true, --Broken Isles Dalaran
+[1072] = true, --Trueshot Lodge
 }
 
 ---
@@ -624,6 +626,8 @@ function Mounts:CanFlyInZone()
 	local currentLocation = GetCurrentMapAreaID()
 	SetMapByID(currentMap)
 
+	--print(currentLocation)
+	
   --if we are in draenor
 	if draenorMapZoneIds[currentLocation] then
 		--attack on the dark portal does not have flying
