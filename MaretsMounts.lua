@@ -18,7 +18,8 @@ local defaults = {
 		Flying = {},
 		Swimming = {},
 		Repair = {},
-		Waterwalking = {}
+		Waterwalking = {},
+		FlyingAsGround = false
 	}
 }
 
@@ -29,15 +30,10 @@ local options = {
     childGroups = "tab",
     args = {
 		info = {
-			name = "Info",
+			name = "Options",
 			type = "group",
 			order = 0,
 			args = {
-				header = {
-					name = "Maret's Mounts",
-					type = "header",
-					order = 0,
-				},
 				macro = {
 					name = "Use the macro named \"Mount Your Face\" to summon.",
 					type = "description",
@@ -47,7 +43,7 @@ local options = {
 				space = {
 					name = "",
 					type = "description",
-					fontSize = "medium",
+					fontSize = "large",
 					order = 2,
 				},
 				howToSummonNormal = {
@@ -67,6 +63,19 @@ local options = {
 					type = "description",
 					fontSize = "medium",
 					order = 5,
+				},
+				header = {
+					name = "Options",
+					type = "header",
+					order = 6,
+				},
+				showAirInGround = {
+					name = "Show flying mounts in ground",
+					type = "toggle",
+					width = "double",
+					order = 7,
+					set = function(info, v) Mounts:SetFlyingAsGround(info, v) end,
+					get = function(info) return Mounts.GetFlyingAsGround() end,
 				},
 			}
 		}
@@ -110,7 +119,7 @@ local options_slashcmd = {
     },
 }
 
--- Buttons
+-- Buttons --
 MMMountButton = CreateFrame("Button", "MaretsMountsNormal", UIParent, "SecureActionButtonTemplate");
 MMRepairMountButton = CreateFrame("Button", "MaretsMountsRepair", UIParent, "SecureActionButtonTemplate");
 MMWaterwalkingMountButton = CreateFrame("Button", "MaretsMountsWaterwalking", UIParent, "SecureActionButtonTemplate");
@@ -220,7 +229,7 @@ function Mounts:OnEnable()
 	Mounts.optionsFrame:RegisterEvent("COMPANION_LEARNED")
 	Mounts.optionsFrame:RegisterEvent("COMPANION_UNLEARNED")
 	Mounts.optionsFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
-	Mounts.optionsFrame:SetScript("OnEvent", function (self, event) Mounts:UpdateMountOptions(self, event) end)
+	Mounts.optionsFrame:SetScript("OnEvent", function (self, event) Mounts:UpdateMountOptions() end)
 	
 	local index = GetMacroIndexByName("Mount Your Face");
 	
@@ -242,7 +251,7 @@ function Mounts:OpenOptions()
 	InterfaceOptionsFrame_OpenToCategory(Mounts.optionsFrame)
 end
 
-function Mounts:UpdateMountOptions(self, event)
+function Mounts:UpdateMountOptions()
 	Mounts:BuildMountOptions()
 	AceConfigRegistry:NotifyChange("MaretsMounts")
 end
@@ -265,11 +274,15 @@ function Mounts:BuildMountOptions()
 		local creatureDisplayID, descriptionText, sourceText, isSelfMount, mountType = C_MountJournal.GetMountInfoExtraByID(mountId);
 
 		if not hideOnChar and isCollected then
-			if mountType == 230 or mountType == 269 or mountType == 247 or mountType == 241 then
+			if mountType == 230 or mountType == 269 or mountType == 247 or mountType == 241 or mountType == 284 then
 				groundMounts[spellID] = true;
 			end
 			if mountType == 248 or mountType == 247 then
 				airMounts[spellID] = true;
+				
+				if Mounts:GetFlyingAsGround() then
+					groundMounts[spellID] = true;
+				end
 			end
 			if mountType == 231 or mountType == 232 or mountType == 254 then
 				waterMounts[spellID] = true;
@@ -401,7 +414,23 @@ function Mounts:MakeMountTable(mounts, optionsTable, mounttype)
 	end
 end
 
+---
 --Getting and setting mount selection state
+---
+
+function Mounts:SetFlyingAsGround(info, value)
+	if value == true then
+		Mounts.db.profile.FlyingAsGround = true;
+	else
+		Mounts.db.profile.FlyingAsGround = false;
+	end
+	
+	Mounts:UpdateMountOptions();
+end
+
+function Mounts:GetFlyingAsGround()
+	return Mounts.db.profile.FlyingAsGround;
+end
 
 function Mounts:SetMountSummonState(info, value, spellid, mounttype)
 	if value == true then
@@ -511,7 +540,9 @@ function Mounts:GetMountSummonState(spellid, mounttype, info)
 	return false;
 end
 
--- Helper functions
+---
+-- Config UI checks for mount restrictions
+---
 function Mounts:GetRestrictions(spellid)
 	local summonable, profession, level = MMHelper:GetProfessionRestriction(spellid);
 	
@@ -556,6 +587,84 @@ function Mounts:IsMountValidForPlayer(id)
 	return true;
 end
 
+---
+--Mounting functions
+---
+function Mounts:Mount()
+	local idToCall = nil;
+
+	if IsMounted() then
+		C_MountJournal.Dismiss();
+		return
+	end
+
+	if not Mounts:CanMountNow() then
+		return
+	end
+
+	if not IsMounted() then
+		idToCall = Mounts:GetRandomMountID()
+
+		idToCall = MMHelper:GetMountInfo(idToCall);
+		
+		C_MountJournal.SummonByID(idToCall);
+	else
+		Dismount();
+	end
+end
+
+function Mounts:MountRepair()
+	local idToCall = nil;
+
+	if IsMounted() then
+		C_MountJournal.Dismiss();
+		return
+	end
+
+	if not Mounts:CanMountNow() then
+		return
+	end
+	
+	while not MMHelper:IsMountUsable(idToCall) and #Mounts.db.profile.Repair > 0 do
+		idToCall = Mounts.db.profile.Repair[random(#Mounts.db.profile.Repair)];
+	end
+	
+	idToCall = MMHelper:GetMountInfo(idToCall);
+		
+	C_MountJournal.SummonByID(idToCall);
+end
+
+function Mounts:MountWaterwalking()
+	local idToCall = nil;
+
+	if IsMounted() then
+		C_MountJournal.Dismiss();
+		return
+	end
+
+	if not Mounts:CanMountNow() then
+		return
+	end
+	
+	while not MMHelper:IsMountUsable(idToCall) and #Mounts.db.profile.Waterwalking > 0 do
+		idToCall = Mounts.db.profile.Waterwalking[random(#Mounts.db.profile.Waterwalking)];
+	end
+	
+	idToCall = MMHelper:GetMountInfo(idToCall);
+		
+	C_MountJournal.SummonByID(idToCall);
+end
+
+function Mounts:CanMountNow()
+	if IsIndoors() or InCombatLockdown() then
+		-- If we are in combat, just try to call our first ground mount so we get the error message
+		C_MountJournal.SummonByID(MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
+		return false
+	end
+	
+	return true
+end
+
 local draenorMapZoneIds = {
 [962] = true, --Draenor
 [978] = true, --Ashran
@@ -586,9 +695,7 @@ local legionMapZoneIds = {
 [1072] = true, --Trueshot Lodge
 }
 
----
 -- Check if the the location is in draenor and if the character has draenor flying
----
 function Mounts:DraenorFlying()
   --save the selected map id so we can go back to it
   local currentMap = GetCurrentMapAreaID()
@@ -670,82 +777,9 @@ function Mounts:GetRandomMountID()
 	return idToCall
 end
 
---Mounting functions
-function Mounts:Mount()
-	local idToCall = nil;
-
-	if IsMounted() then
-		C_MountJournal.Dismiss();
-		return
-	end
-
-	if not Mounts:CanMountNow() then
-		return
-	end
-
-	if not IsMounted() then
-		idToCall = Mounts:GetRandomMountID()
-
-		idToCall = MMHelper:GetMountInfo(idToCall);
-		
-		C_MountJournal.SummonByID(idToCall);
-	else
-		Dismount();
-	end
-end
-
-function Mounts:MountRepair()
-	local idToCall = nil;
-
-	if IsMounted() then
-		C_MountJournal.Dismiss();
-		return
-	end
-
-	if not Mounts:CanMountNow() then
-		return
-	end
-	
-	while not MMHelper:IsMountUsable(idToCall) and #Mounts.db.profile.Repair > 0 do
-		idToCall = Mounts.db.profile.Repair[random(#Mounts.db.profile.Repair)];
-	end
-	
-	idToCall = MMHelper:GetMountInfo(idToCall);
-		
-	C_MountJournal.SummonByID(idToCall);
-end
-
-function Mounts:MountWaterwalking()
-	local idToCall = nil;
-
-	if IsMounted() then
-		C_MountJournal.Dismiss();
-		return
-	end
-
-	if not Mounts:CanMountNow() then
-		return
-	end
-	
-	while not MMHelper:IsMountUsable(idToCall) and #Mounts.db.profile.Waterwalking > 0 do
-		idToCall = Mounts.db.profile.Waterwalking[random(#Mounts.db.profile.Waterwalking)];
-	end
-	
-	idToCall = MMHelper:GetMountInfo(idToCall);
-		
-	C_MountJournal.SummonByID(idToCall);
-end
-
-function Mounts:CanMountNow()
-	if IsIndoors() or InCombatLockdown() then
-		-- If we are in combat, just try to call our first ground mount so we get the error message
-		C_MountJournal.SummonByID(MMHelper:GetMountSummonID(Mounts.db.profile.Ground[1]))
-		return false
-	end
-	
-	return true
-end
-
+---
+-- Helper data and functions for aggregating custom mount data with blizzard mount data
+---
 MMHelper = {
 	REPAIR = {},
 	data = {},
