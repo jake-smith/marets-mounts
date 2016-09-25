@@ -690,9 +690,10 @@ local legionMapZoneIds = {
 [1018] = true, --Val'sharah
 [1017] = true, --Stormheim
 [1022] = true, --Helheim
-[1035] = true, -- Skyhold
+[1035] = true, --Skyhold
 [1014] = true, --Broken Isles Dalaran
 [1072] = true, --Trueshot Lodge
+[1031] = true, --Broken Shore (Ashbringer Scenario)
 }
 
 -- Check if the the location is in draenor and if the character has draenor flying
@@ -733,6 +734,7 @@ function Mounts:CanFlyInZone()
 	local currentLocation = GetCurrentMapAreaID()
 	SetMapByID(currentMap)
 
+	--Use this for debugging when i find new locations that summon flying for dumb reasons
 	--print(currentLocation)
 	
   --if we are in draenor
